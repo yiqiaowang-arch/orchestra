@@ -96,3 +96,34 @@ stateDiagram-v2
 3. **②→②（跨会话）**：`SETTLED →( /worker-successor )→ 新 worker SPAWNED`——继承终 checkpoint 与 cwd。
 4. **②→③（回传）**：worker 的 `## Worker report` 被 mission collect，裁决写回 ③ 环任务矩阵。
 5. **任意环 ↔ 人**：所有"就绪/完成"状态都有持久证据，人随时可接手（`/worker-report`、`/mission status`、`/continue`）。
+
+## 多轮交接问答：现状与设计
+
+**现状：交接是单程。** 旧对话写 checkpoint → 新对话注入快照 → 只做下一步。问答式的来回目前只存在于 mission 的审查-返工（coordinator 与 worker 之间，**有界** `workerRounds`）：
+
+```mermaid
+sequenceDiagram
+    participant C as coordinator（旧对话）
+    participant W as worker（新对话）
+    C->>W: 第1轮：任务书
+    W-->>C: 报告 ## Worker report
+    C->>C: 审查 → VERDICT: rework 附注
+    C->>W: 第2轮：返工指令
+    W-->>C: 修订报告
+    C->>C: 再审 → approve（≤ workerRounds+1 轮）
+```
+
+**设计（后续选项）：新旧对话之间的 3 轮问答**。前提是旧对话仍存活、且由驱动器按需再次唤醒；旧对话通过只读通道读新对话的"交接回执"，补写 checkpoint 附注，新对话再读——全程有界（默认 ≤3 轮，`handshake-max-rounds`）：
+
+```mermaid
+sequenceDiagram
+    participant 旧 as 旧对话（仍存活）
+    participant 新 as 新对话
+    新->>新: 第1轮：读交接文档，产出提问回执（写入新对话日志）
+    旧->>旧: 只读新对话的回执（sessionQuery）
+    旧->>新: 第2轮：被驱动器唤醒，补写交接附注（checkpoint 修订）
+    新->>新: 第3轮：读到附注，确认或最后澄清
+    新->>新: 开始执行 next atomic action
+```
+
+> 两种形态共享同一原则：**轮数有界、每轮有持久证据、超时即降级为单程交接**，绝不无限对话。
