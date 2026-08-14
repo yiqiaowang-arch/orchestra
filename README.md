@@ -21,71 +21,33 @@
 
 共 **12 条专属命令** + 6 条继承自标准模式（`/compact` `/plan` `/goal` `/permission` `/feedback` `/export`）。完整参考见 [`docs/COMMANDS.md`](docs/COMMANDS.md)。
 
-## 状态模型：三种环，一眼看懂
+## 什么时候用什么命令
 
-整个系统只有**三种状态环**，分别管：会话健康 → 单任务 → 大目标。任何会话至少跑第 ① 环；worker 叠加 ②；coordinator 叠加 ③。
+一句话逻辑：**干活 → 快满就 `/rotate` 换新对话接着干；目标能拆就 `/mission` 自动并行实现。**
 
 ```mermaid
-stateDiagram-v2
-    direction LR
-
-    state "① 会话健康环 · 每个会话都有（continuity）" as Session {
-        [*] --> NORMAL
-        NORMAL --> PENDING: /handoff 或压缩后自动
-        PENDING --> CHECKPOINTING: 安全边界调度
-        CHECKPOINTING --> READY: 持久校验通过
-        CHECKPOINTING --> CHECKPOINTING: 无效 → 重试 ≤1 次
-        CHECKPOINTING --> FAILED: 重试耗尽
-        FAILED --> PENDING: 再 /handoff
-        READY --> ROTATED: /rotate（产生新会话）
-        ROTATED --> NORMAL: 新会话从这里开始
-    }
-
-    state "② 任务环 · 每个 worker（worktree）" as Worker {
-        [*] --> SPAWNED
-        SPAWNED --> WORKING: 任务书注入
-        WORKING --> REPORTED: 写出 ## Worker report
-        REPORTED --> APPROVED: VERDICT approve
-        REPORTED --> REWORK: VERDICT rework（有界）
-        REWORK --> REPORTED
-        APPROVED --> SETTLED
-        REPORTED --> SETTLED: 清理/停止
-        SETTLED --> SPAWNED: /worker-successor 接班
-    }
-
-    state "③ 目标环 · coordinator 的 mission" as Mission {
-        [*] --> IDLE
-        IDLE --> PLANNING: /mission <目标>
-        PLANNING --> DISPATCHING: 分解 ≤4 任务
-        PLANNING --> FAILED: 超时/格式错误
-        DISPATCHING --> CLOSING: 全部任务出裁决
-        DISPATCHING --> FAILED: 预算耗尽
-        CLOSING --> DONE: 持久 mission checkpoint
-        CLOSING --> FAILED: 收口超时
-        FAILED --> PLANNING: /mission resume
-    }
-
-    DISPATCHING --> SPAWNED: 每任务派发一个 worker
+flowchart TD
+    A[正在干活] -->|随时看压力| B[/continuity]
+    A -->|快满 / 告一段落| C[/handoff 存档<br/>模型自动写交接文档]
+    C -->|换个干净上下文| D[/rotate 换新对话<br/>自动开新会话并注入]
+    D --> A
+    A -->|目标可拆成多块| E[/mission 目标<br/>自动拆解派发审查]
+    E -->|看进展| F[/mission status]
+    F --> A
 ```
 
-**速查表**：状态 → 谁推进 → 怎么离开
+| 你什么时候…… | 敲什么 | 手动还是自动 |
+|---|---|---|
+| 想看上下文还剩多少 | `/continuity` | 只读，随时可敲 |
+| 想先存个档再继续 | `/handoff` | **半自动**：它挑安全时机（不打断你正在跑的工具），让模型写一份 8 节交接文档 |
+| 想换个干净的新对话接着干 | `/rotate` | **半自动**：确认后自动写完交接文档 → 开新会话 → 注入快照 → 唤醒，新会话只做上一步 |
+| 想从某个旧对话继续 | `/continue <id>` | **半自动**：自动注入旧对话快照后唤醒，按交接文档干活 |
+| 想开一个并行任务 | `/worktree <任务>` | **半自动**：自动建 worktree + 派一个 worker 去干 |
+| 想指挥 worker | `/workers` `/worker-report` `/worker-send` `/worker-stop` | 手动：列表 / 读报告 / 发消息 / 叫停 |
+| 想把一个高级目标自动实现 | `/mission <目标>` | **自动循环**：拆解 → 并行派 worker → 审查 → 收口；有超时和预算护栏，失败会明确报告 |
+| mission 中途断了想续 | `/mission resume` | 手动：从持久 checkpoint 接着跑 |
 
-| 环 | 状态 | 谁推进 | 离开方式 |
-|---|---|---|---|
-| ① 会话健康 | `NORMAL` | 你 | `/handoff` 进 PENDING；压缩后自动 |
-| ① | `PENDING → CHECKPOINTING` | 预设插件 | 安全边界（不打断工具调用）自动 steer |
-| ① | `CHECKPOINTING → READY` | 模型 + 插件 | 写出带标记 8 节 checkpoint 且持久校验通过 |
-| ① | `READY → ROTATED` | 你（`/rotate`） | 驱动器自动建新会话并注入快照 |
-| ② 任务 | `SPAWNED → WORKING → REPORTED` | worker 会话 | 完成任务后写 `## Worker report` |
-| ② | `REPORTED → APPROVED / REWORK` | coordinator | `/worker-report` 读、`VERDICT` 裁决 |
-| ② | `SETTLED → SPAWNED(接班)` | coordinator | `/worker-successor <id>` 显式派 |
-| ③ 目标 | `IDLE → PLANNING → DISPATCHING` | mission 驱动器 | `/mission` 启动，自动分解派发 |
-| ③ | `DISPATCHING → CLOSING → DONE` | mission 驱动器 + 你 | 全裁决后收口持久 checkpoint |
-| ③ | 任意 → `FAILED` | 超时/预算 | `/mission resume` 显式续跑 |
-
-完整版（含护栏与命令映射）见 [`docs/STATES.md`](docs/STATES.md)。
-
-**日常就是三步**：`/continuity` 看 ① 环 → 快满就 `/rotate`（① 环转新会话）→ 目标可并行就 `/mission`（③ 环自动驱动 ② 环）。
+需要深挖状态机细节时再看 [`docs/STATES.md`](docs/STATES.md)——日常使用不需要。
 
 ## 快速开始
 
