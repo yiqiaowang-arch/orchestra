@@ -1,0 +1,53 @@
+# Your patch layer for this dsh profile, applied after every bundle layer:
+# a top-level YAML array of loader patch entries (id-targeted config
+# overrides, disables, and insert lists; `!!js` expressions allowed).
+
+# ── continuity (V4 phase A, user-owned) ──────────────────────────────────────
+# Host-plane rollover driver installed through the official profile patch
+# layer. The plugin file lives outside every business repository at
+# C:\Users\wangy\.dsh\continuity-host\continuity-rotation.v4.mjs and
+# publishes the `continuityRotation` service consumed by the `continuity`
+# preset's /rotate command. Config below is user-editable and hot-reloaded by
+# the loader. Upgrade path: ship a NEW versioned file name and update the row
+# here — the loader caches imported modules by URL for the process lifetime,
+# so editing a file in place does not take effect without a restart.
+# (Remove this whole entry to uninstall.)
+- insert:
+    - id: continuity-rotation
+      name: file:///C:/Users/wangy/.dsh/continuity-host/continuity-rotation.v4.mjs
+      config:
+        rotateRatio: 0.78
+        autoRollover: suggest
+        maxWaitMs: 300000
+        cooldownMs: 300000
+        oldSession: keep
+
+    # ── continuity phase B: worktree/worker driver (user-owned) ───────────────
+    # Publishes `continuityWorktree` for the preset's /worktree, /workers,
+    # /worker-send, /worker-stop, /worker-report. Worktree creation writes
+    # outside the coordinator workspace, so it is authorization-gated: when
+    # the coordinator session's approval policy is not `never`, an approval
+    # request must return allowed-once. Set askApproval: false to disable the
+    # gate explicitly (danger-full-access style usage).
+    - id: continuity-worktree
+      name: file:///C:/Users/wangy/.dsh/continuity-host/continuity-worktree.v3.mjs
+      config:
+        askApproval: true
+        reportCapChars: 8000
+
+    # ── continuity phase C: mission orchestration driver (user-owned) ────────
+    # Publishes `continuityMission` for the preset's /mission command: the
+    # bounded automatic loop plan → dispatch (worktree workers, bounded
+    # batches) → collect (## Worker report) → review (VERDICT) → rework
+    # (bounded) → closeout (durable mission checkpoint) | escalate. All
+    # phases carry timeouts and round caps; the loop never silently expands.
+    - id: continuity-mission
+      name: file:///C:/Users/wangy/.dsh/continuity-host/continuity-mission.v2.mjs
+      config:
+        maxTasks: 4
+        maxConcurrent: 2
+        planTimeoutMs: 240000
+        reviewTimeoutMs: 240000
+        workerTimeoutMs: 600000
+        workerRounds: 1
+        missionTimeoutMs: 1800000

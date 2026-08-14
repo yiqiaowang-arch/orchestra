@@ -1,0 +1,14 @@
+# Patch layer for the offline pipeline-test profile: same rows as the web
+# profile patch (beacon + rotation driver) plus a one-shot runner that writes
+# the visibility result and exits.
+- insert:
+    - id: continuity-rotation-beacon
+      name: file:///C:/Users/wangy/.dsh/continuity-host/rotation-beacon.mjs
+
+    - id: continuity-rotation
+      name: file:///C:/Users/wangy/.dsh/continuity-host/continuity-rotation.v4.mjs
+
+    - id: patch-pipeline-runner
+      name: file:///C:/Users/wangy/.dsh/continuity-host/patch-pipeline-test.mjs
+      config:
+        outPath: C:\Users\wangy\.dsh\continuity-host\pipeline-result.json

@@ -1,0 +1,7 @@
+# scratch + generated artifacts (never versioned)
+opt-scratch/
+smoke-a/
+smoke-b/
+smoke-repo/
+pipeline-result.json
+*.log
