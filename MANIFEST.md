@@ -15,6 +15,15 @@
 
 旧代次（plugin base/v2/v3/v4、rotation base/v2/v3、worktree v1/v2、mission v1）**全部保留**——运行中的进程可能仍引用它们，禁止删除。
 
+## 文档索引
+
+- `README.md` —— 所有人（速览 + 工作流图 + 快速开始）
+- `AGENTS.md` —— 仓库工作协议（红线/版本铁律/测试门禁/交接协议）
+- `ARCHITECTURE.md` —— 架构（平面/组件/状态机/时序/约束）
+- `CHANGELOG.md` —— 版本史
+- `docs\COMMANDS.md` —— 命令全集
+- 本文件 —— 维护者速查（版本/引用/升级/回滚）
+
 ## 测试与验证
 
 ```powershell
