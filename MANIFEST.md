@@ -22,6 +22,7 @@
 - `ARCHITECTURE.md` —— 架构（平面/组件/状态机/时序/约束）
 - `CHANGELOG.md` —— 版本史
 - `docs\COMMANDS.md` —— 命令全集
+- `docs\STATES.md` —— 状态模型速查（三种环）
 - 本文件 —— 维护者速查（版本/引用/升级/回滚）
 
 ## 测试与验证

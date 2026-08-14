@@ -21,21 +21,71 @@
 
 共 **12 条专属命令** + 6 条继承自标准模式（`/compact` `/plan` `/goal` `/permission` `/feedback` `/export`）。完整参考见 [`docs/COMMANDS.md`](docs/COMMANDS.md)。
 
-## 一分钟看懂工作流
+## 状态模型：三种环，一眼看懂
+
+整个系统只有**三种状态环**，分别管：会话健康 → 单任务 → 大目标。任何会话至少跑第 ① 环；worker 叠加 ②；coordinator 叠加 ③。
 
 ```mermaid
-flowchart TD
-    Start([新建会话 · 选接力模式]) --> Work[正常编码工作]
-    Work -->|随时| Status["/continuity 看压力"]
-    Status -->|"比率 ≥ 0.78 或告一段落"| Handoff{怎么交接?}
-    Handoff -->|"换个干净上下文"| Rotate["/rotate 一键轮换<br/>自动建新会话并注入快照"]
-    Handoff -->|"先存档再继续干"| Save["/handoff 写 checkpoint"]
-    Work -->|"目标可并行拆解"| Mission["/mission 高级目标<br/>自动分解 + 多 worktree worker"]
-    Save -->|"下次新会话"| Continue["/continue <旧会话id>"]
-    Rotate --> Work2[新会话只做 next action]
-    Mission --> Review["审查报告 → 收口 mission checkpoint"]
-    Review --> Work2
+stateDiagram-v2
+    direction LR
+
+    state "① 会话健康环 · 每个会话都有（continuity）" as Session {
+        [*] --> NORMAL
+        NORMAL --> PENDING: /handoff 或压缩后自动
+        PENDING --> CHECKPOINTING: 安全边界调度
+        CHECKPOINTING --> READY: 持久校验通过
+        CHECKPOINTING --> CHECKPOINTING: 无效 → 重试 ≤1 次
+        CHECKPOINTING --> FAILED: 重试耗尽
+        FAILED --> PENDING: 再 /handoff
+        READY --> ROTATED: /rotate（产生新会话）
+        ROTATED --> NORMAL: 新会话从这里开始
+    }
+
+    state "② 任务环 · 每个 worker（worktree）" as Worker {
+        [*] --> SPAWNED
+        SPAWNED --> WORKING: 任务书注入
+        WORKING --> REPORTED: 写出 ## Worker report
+        REPORTED --> APPROVED: VERDICT approve
+        REPORTED --> REWORK: VERDICT rework（有界）
+        REWORK --> REPORTED
+        APPROVED --> SETTLED
+        REPORTED --> SETTLED: 清理/停止
+        SETTLED --> SPAWNED: /worker-successor 接班
+    }
+
+    state "③ 目标环 · coordinator 的 mission" as Mission {
+        [*] --> IDLE
+        IDLE --> PLANNING: /mission <目标>
+        PLANNING --> DISPATCHING: 分解 ≤4 任务
+        PLANNING --> FAILED: 超时/格式错误
+        DISPATCHING --> CLOSING: 全部任务出裁决
+        DISPATCHING --> FAILED: 预算耗尽
+        CLOSING --> DONE: 持久 mission checkpoint
+        CLOSING --> FAILED: 收口超时
+        FAILED --> PLANNING: /mission resume
+    }
+
+    DISPATCHING --> SPAWNED: 每任务派发一个 worker
 ```
+
+**速查表**：状态 → 谁推进 → 怎么离开
+
+| 环 | 状态 | 谁推进 | 离开方式 |
+|---|---|---|---|
+| ① 会话健康 | `NORMAL` | 你 | `/handoff` 进 PENDING；压缩后自动 |
+| ① | `PENDING → CHECKPOINTING` | 预设插件 | 安全边界（不打断工具调用）自动 steer |
+| ① | `CHECKPOINTING → READY` | 模型 + 插件 | 写出带标记 8 节 checkpoint 且持久校验通过 |
+| ① | `READY → ROTATED` | 你（`/rotate`） | 驱动器自动建新会话并注入快照 |
+| ② 任务 | `SPAWNED → WORKING → REPORTED` | worker 会话 | 完成任务后写 `## Worker report` |
+| ② | `REPORTED → APPROVED / REWORK` | coordinator | `/worker-report` 读、`VERDICT` 裁决 |
+| ② | `SETTLED → SPAWNED(接班)` | coordinator | `/worker-successor <id>` 显式派 |
+| ③ 目标 | `IDLE → PLANNING → DISPATCHING` | mission 驱动器 | `/mission` 启动，自动分解派发 |
+| ③ | `DISPATCHING → CLOSING → DONE` | mission 驱动器 + 你 | 全裁决后收口持久 checkpoint |
+| ③ | 任意 → `FAILED` | 超时/预算 | `/mission resume` 显式续跑 |
+
+完整版（含护栏与命令映射）见 [`docs/STATES.md`](docs/STATES.md)。
+
+**日常就是三步**：`/continuity` 看 ① 环 → 快满就 `/rotate`（① 环转新会话）→ 目标可并行就 `/mission`（③ 环自动驱动 ② 环）。
 
 ## 快速开始
 
@@ -135,6 +185,7 @@ node tests\continuity-mission-tests.mjs   # 19   —— 合计 110，全绿
 | [CHANGELOG.md](CHANGELOG.md) | 所有人（版本史） |
 | [MANIFEST.md](MANIFEST.md) | 维护者（版本/引用/回滚速查） |
 | [docs/COMMANDS.md](docs/COMMANDS.md) | 使用者（命令全集） |
+| [docs/STATES.md](docs/STATES.md) | 所有人（三种状态环速查） |
 
 ## 声明
 
