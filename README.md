@@ -27,12 +27,12 @@
 
 ```mermaid
 flowchart TD
-    A[正在干活] -->|随时看压力| B[/continuity]
-    A -->|快满 / 告一段落| C[/handoff 存档<br/>模型自动写交接文档]
-    C -->|换个干净上下文| D[/rotate 换新对话<br/>自动开新会话并注入]
+    A["正在干活"] -->|随时看压力| B["/continuity"]
+    A -->|快满或告一段落| C["/handoff 存档<br/>模型自动写交接文档"]
+    C -->|换个干净上下文| D["/rotate 换新对话<br/>自动开新会话并注入"]
     D --> A
-    A -->|目标可拆成多块| E[/mission 目标<br/>自动拆解派发审查]
-    E -->|看进展| F[/mission status]
+    A -->|目标可拆成多块| E["/mission 目标<br/>自动拆解派发审查"]
+    E -->|看进展| F["/mission status"]
     F --> A
 ```
 
@@ -86,20 +86,19 @@ powershell -ExecutionPolicy Bypass -File install.ps1
 
 ```mermaid
 graph LR
-    subgraph 浏览器/会话
-        A[接力模式会话] -->|12 条命令| P[预设插件 v5]
+    subgraph 会话
+        A["接力模式会话"] -->|12 条命令| P["预设插件 v5"]
     end
-    P -->|消费 Host 服务| H
-    subgraph Host（用户 profile 补丁层）
-        H1[continuity-rotation v4<br/>轮换/接班]
-        H2[continuity-worktree v3<br/>worktree/worker]
-        H3[continuity-mission v2<br/>mission 编排]
+    subgraph Host["Host 用户补丁层"]
+        H1["rotation v4 轮换与接班"]
+        H2["worktree v3 任务并行"]
+        H3["mission v2 自动编排"]
     end
     P --> H1
     P --> H2
     P --> H3
-    H2 --> W[worker 会话<br/>独立 cwd / 谱系]
-    H1 --> C[轮换产物会话<br/>parentSession 谱系]
+    H2 --> W["worker 会话<br/>独立 cwd 与谱系"]
+    H1 --> C["轮换产物会话<br/>parentSession 谱系"]
     H3 --> H2
 ```
 

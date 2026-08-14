@@ -33,6 +33,7 @@ node tests\continuity-worktree-tests.mjs   # 29
 node tests\continuity-mission-tests.mjs    # 19   —— 合计 110，必须全绿
 node C:\Users\wangy\Documents\GitHub\deepseek-harness\apps\cli\lib\bin.js --profile web --dump-config
 node C:\Users\wangy\Documents\GitHub\deepseek-harness\apps\cli\lib\bin.js --profile continuity-smoke
+node tests\validate-mermaid.mjs   # 所有 ```mermaid 图必须解析通过
 ```
 
 - 每个新纯函数都要有单元测试；行为改动要有等价性/回归测试。
