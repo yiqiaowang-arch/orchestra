@@ -7,7 +7,8 @@
 #   - 组合文件（agent.cordis.yml / preset.yml）若已存在且不同 → 同样备份并提示。
 
 $ErrorActionPreference = 'Stop'
-$root = Split-Path -Parent $MyInvocation.MyCommand.Path
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$root = Split-Path -Parent $scriptDir
 $deploy = Join-Path $root 'deploy'
 $dshHome = if ($env:DSH_HOME) { $env:DSH_HOME } else { Join-Path $HOME '.dsh' }
 

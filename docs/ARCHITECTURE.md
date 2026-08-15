@@ -26,10 +26,11 @@
 
 | 组件 | 版本 | 真实文件 | 发布/注册 | 命令面 |
 |---|---|---|---|---|
-| 预设插件 | v5 | `.agent-presets\continuity\continuity-plugin.v5.mjs` | 12 条命令 + `continuity-roles` prompt 段 | 全部专属命令 |
-| 轮换驱动器 | v4 | `continuity-host\continuity-rotation.v4.mjs` | `continuityRotation` | `/rotate`、`/worker-successor`（经预设） |
-| worktree 驱动器 | v3 | `continuity-host\continuity-worktree.v3.mjs` | `continuityWorktree` | `/worktree` `/workers` `/worker-send` `/worker-stop` `/worker-report` `/worktree-cleanup` |
-| mission 驱动器 | v2 | `continuity-host\continuity-mission.v2.mjs` | `continuityMission` | `/mission` `/mission resume` `/mission status` |
+| 预设插件 | v26 | `.agent-presets\continuity\continuity-plugin.v26.mjs` | 25 条命令 + `continuity-roles` prompt 段 | 全部专属命令 |
+| 轮换驱动器 | v7 | `continuity-host\continuity-rotation.v7.mjs` | `continuityRotation` | `/rotate`、`/worker-successor`（经预设） |
+| worktree 驱动器 | v7 | `continuity-host\continuity-worktree.v7.mjs` | `continuityWorktree` | `/worktree` `/workers` `/worker-send` `/worker-stop` `/worker-report` `/worktree-cleanup` |
+| mission 驱动器 | v7 | `continuity-host\continuity-mission.v7.mjs` | `continuityMission` | `/mission`（`<goal>`/`status`/`stop`）、`/mission_status`、`/status`（经预设） |
+| shared | v1 | `continuity-host\continuity-shared.v1.mjs` | 驱动器 import | 纯 helper（checkpoint/mission marker 单一真相源） |
 
 ## 4. 运行时拓扑
 
@@ -42,20 +43,20 @@ graph TD
     end
     subgraph "进程 Host"
         ROOT[Host 组合（出厂 + 用户补丁层）]
-        R4[continuity-rotation v4]
-        W3[continuity-worktree v3]
-        M2[continuity-mission v2]
+        R7[continuity-rotation v7]
+        W7[continuity-worktree v7]
+        M7[continuity-mission v7]
         SR[sessionReferenceResolver（预设 isolate realm）]
     end
     subgraph "预设 standing mount（每代一次）"
-        P5[插件 v5 实例<br/>每会话状态按 sessionId 键控]
+        P26[插件 v26 实例<br/>每会话状态按 sessionId 键控]
     end
-    ROOT --> R4
-    ROOT --> W3
-    ROOT --> M2
-    S1 -.->|scope parent| P5
-    S2 -.->|composeFrom / mount| P5
-    S3 -.->|mount| P5
+    ROOT --> R7
+    ROOT --> W7
+    ROOT --> M7
+    S1 -.->|scope parent| P26
+    S2 -.->|composeFrom / mount| P26
+    S3 -.->|mount| P26
     S2 -->|parentSession 谱系| S1
     S3 -->|parentSession 谱系| S1
     P5 --> R4
@@ -146,8 +147,8 @@ flowchart LR
     Edit[改 .mjs] -->|发布| New[新版本文件 vN+1]
     New --> Ref[更新全部引用：<br/>web/smoke patch、组合、测试 import、管线]
     Ref --> Touch[预设插件则触碰组合文件]
-    Touch --> Test[110 项测试 + dump-config + 离线管线]
-    Test --> Sync[sync-deploy.ps1] --> Commit[提交]
+    Touch --> Test[141 项测试 + dump-config + 离线管线]
+    Test --> Sync[scripts/sync-deploy.ps1] --> Commit[提交]
     Rollback[回滚] -->|改回旧 URL| New
     Rollback -->|禁行| Disable[补丁行 disabled: true]
     Rollback -->|删除| Remove[删补丁行 / 删预设]

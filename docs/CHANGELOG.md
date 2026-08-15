@@ -1,5 +1,16 @@
 # CHANGELOG.md — 版本史
 
+## v26/v7/v7/v7 — Orchestra 品牌 + mission 取消（2026-08-16）
+
+**插件 v26 · rotation v7 · worktree v7 · mission v7 · shared v1**（旧代次全部保留，141/141 测试）
+
+- 品牌：人类名 接力模式 → **Orchestra（乐团模式）**（技术命名空间 continuity-* 不变）；仓库改名 `orchestra`；双语 README（动机/做法/用法/快速开始）+ MIT LICENSE。
+- 会话：`/sessions_active`（未归档 + workspace 组内）、`/current_session`（只回当前 id）。
+- 协调：有界 hub onboarding（spoke=兄弟会话非 subagent）、`/coordinate-hub <ids> [-- 你的想法]`、终局回复转发（v22）、推送/拉取读一次（peek 去重）、`/steer` 重要升级（忙碌守卫）。
+- mission：`/mission stop` 取消（v7，phase `cancelled` 终态）、裸 `/status` 别名、`/mission_status`、说人话进度。
+- 收敛：worktree v7 的 MISSION_MARKER 从 shared.v1 导入（单一真相源闭环）。
+- 测试 136 → **141**（+5）；文档=真相（V4 §7e 等全量同步）。
+
 ## v5/v4/v3/v2 — 优化轮（2026-08-14）
 
 **插件 v5 · rotation v4 · worktree v3 · mission v2**（旧代次全部保留，110/110 测试）

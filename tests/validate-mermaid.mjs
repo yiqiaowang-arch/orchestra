@@ -21,7 +21,7 @@ const mermaid = require('C:/Users/wangy/Documents/GitHub/deepseek-harness/node_m
 await mermaid.initialize({ startOnLoad: false })
 
 const root = resolve('C:/Users/wangy/.dsh/designs/continuity-v3')
-const files = ['README.md', 'ARCHITECTURE.md', 'CHANGELOG.md', 'AGENTS.md', 'MANIFEST.md', ...readdirSync(join(root, 'docs')).map((f) => join('docs', f))]
+const files = ['README.md', ...readdirSync(join(root, 'docs')).filter((f) => f.endsWith('.md')).map((f) => join('docs', f)), ...readdirSync(join(root, 'docs', 'design')).map((f) => join('docs', 'design', f))]
 
 let passed = 0
 let failed = 0

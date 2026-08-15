@@ -51,7 +51,7 @@ Run from **any directory** (the clone location does not matter: the installer co
 ```powershell
 git clone https://github.com/yiqiaowang-arch/orchestra.git
 cd orchestra
-powershell -ExecutionPolicy Bypass -File install.ps1
+powershell -ExecutionPolicy Bypass -File scripts/install.ps1
 ```
 
 Then create a session, pick **Orchestra (Ensemble Mode)** in the preset selector, and run `/continuity` — seeing tokens / capacity / ratio means it works.
@@ -63,12 +63,12 @@ Then create a session, pick **Orchestra (Ensemble Mode)** in the preset selector
 | Doc | Audience |
 |---|---|
 | [README.md](README.md) | Chinese readers |
-| [AGENTS.md](AGENTS.md) | Agents working in this repo (red lines / versioning / commit / handoff protocol) |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Developers (planes / components / state machines / sequences / constraints) |
+| [docs/AGENTS.md](docs/AGENTS.md) | Agents working in this repo (red lines / versioning / commit / handoff protocol) |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Developers (planes / components / state machines / sequences / constraints) |
 | [docs/COMMANDS.md](docs/COMMANDS.md) | Users (full command reference) |
 | [docs/STATES.md](docs/STATES.md) | Everyone (the three state-loop cheat sheet) |
-| [CHANGELOG.md](CHANGELOG.md) / [MANIFEST.md](MANIFEST.md) | Version history / maintenance quick reference |
-| [CONTEXT_CONTINUITY_SYSTEM_DESIGN_V4.md](CONTEXT_CONTINUITY_SYSTEM_DESIGN_V4.md) | Design docs |
+| [docs/CHANGELOG.md](docs/CHANGELOG.md) / [docs/MANIFEST.md](docs/MANIFEST.md) | Version history / maintenance quick reference |
+| [docs/design/CONTEXT_CONTINUITY_SYSTEM_DESIGN_V4.md](docs/design/CONTEXT_CONTINUITY_SYSTEM_DESIGN_V4.md) | Design docs |
 
 ## License
 

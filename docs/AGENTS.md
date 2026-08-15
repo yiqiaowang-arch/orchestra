@@ -27,10 +27,10 @@ Loader 按 URL 缓存模块、进程内永不过期（G7）。因此：
 ## 4. 测试门禁（每个改动）
 
 ```powershell
-node tests\continuity-unit-tests.mjs       # 44
-node tests\continuity-rotation-tests.mjs   # 18
-node tests\continuity-worktree-tests.mjs   # 29
-node tests\continuity-mission-tests.mjs    # 19   —— 合计 110，必须全绿
+node tests\continuity-unit-tests.mjs       # 66
+node tests\continuity-rotation-tests.mjs   # 20
+node tests\continuity-worktree-tests.mjs   # 32
+node tests\continuity-mission-tests.mjs    # 23   —— 合计 141，必须全绿
 node C:\Users\wangy\Documents\GitHub\deepseek-harness\apps\cli\lib\bin.js --profile web --dump-config
 node C:\Users\wangy\Documents\GitHub\deepseek-harness\apps\cli\lib\bin.js --profile continuity-smoke
 node tests\validate-mermaid.mjs   # 所有 ```mermaid 图必须解析通过
@@ -42,8 +42,8 @@ node tests\validate-mermaid.mjs   # 所有 ```mermaid 图必须解析通过
 ## 5. 提交协议
 
 1. 改码（按 §3）→ 测试全绿（§4）；
-2. 运行 `powershell -ExecutionPolicy Bypass -File sync-deploy.ps1`；
-3. **文档=真相**：同步更新 `MANIFEST.md`（版本/引用表）与 `CHANGELOG.md`；行为变化更新 `docs\COMMANDS.md` 与 `ARCHITECTURE.md`；
+2. 运行 `powershell -ExecutionPolicy Bypass -File scripts/sync-deploy.ps1`；
+3. **文档=真相**：同步更新 `docs\MANIFEST.md`（版本/引用表）与 `docs\CHANGELOG.md`；行为变化更新 `docs\COMMANDS.md` 与 `docs\ARCHITECTURE.md`；
 4. `git add -A && git commit`（一条逻辑改动一条提交）；
 5. 真实会话验证走 §7 清单，结果写进提交说明或报告。
 
@@ -69,8 +69,8 @@ node tests\validate-mermaid.mjs   # 所有 ```mermaid 图必须解析通过
 | `C:\Users\wangy\.dsh\continuity-host\` | 三个驱动器全代次 + 离线管线设施 |
 | `C:\Users\wangy\.dsh\profiles\web\cordis.patch.yml` | host 补丁层（三行驱动器，热应用） |
 | `C:\Users\wangy\.dsh\profiles\continuity-smoke\` | 离线管线测试 profile |
-| `C:\Users\wangy\.dsh\designs\continuity-v3\` | 本仓库（文档/测试/镜像/scratch） |
-| `C:\Users\wangy\.dsh\designs\continuity-v3\opt-scratch\` | 临时工作区（不入库） |
+| `C:\Users\wangy\.dsh\designs\continuity-v3\` | 本仓库（README + LICENSE 在根；`docs\` 文档、`docs\design\` 设计文档、`scripts\` 安装/同步脚本、`tests\`、`deploy\` 镜像） |
+| `C:\Users\wangy\.dsh\designs\continuity-v3\opt-scratch\` | 临时工作区与草稿（不入库；含 smoke-a/smoke-b/smoke-repo） |
 
 ## 9. 常见陷阱
 

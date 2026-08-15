@@ -6,10 +6,11 @@
 # repo therefore tracks a mirror: run this script BEFORE every commit, then
 # `git status` must show only intended diffs.
 #
-# Usage:  powershell -ExecutionPolicy Bypass -File sync-deploy.ps1
+# Usage:  powershell -ExecutionPolicy Bypass -File scripts/sync-deploy.ps1
 
 $ErrorActionPreference = 'Stop'
-$root = Split-Path -Parent $MyInvocation.MyCommand.Path
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$root = Split-Path -Parent $scriptDir
 $deploy = Join-Path $root 'deploy'
 
 # source -> destination (file-filtered copies only: never drag boot-generated files in)

@@ -51,7 +51,7 @@
 ```powershell
 git clone https://github.com/yiqiaowang-arch/orchestra.git
 cd orchestra
-powershell -ExecutionPolicy Bypass -File install.ps1
+powershell -ExecutionPolicy Bypass -File scripts/install.ps1
 ```
 
 然后新建会话，预设选择器选 **Orchestra（乐团模式）**，跑 `/continuity` 看到 tokens / 容量 / 比率即成功。
@@ -63,12 +63,12 @@ powershell -ExecutionPolicy Bypass -File install.ps1
 | 文档 | 读者 |
 |---|---|
 | [README.en.md](README.en.md) | English readers |
-| [AGENTS.md](AGENTS.md) | 在此仓库工作的 Agent（红线/升级/提交/交接协议） |
-| [ARCHITECTURE.md](ARCHITECTURE.md) | 开发者（平面/组件/状态机/时序/约束） |
+| [docs/AGENTS.md](docs/AGENTS.md) | 在此仓库工作的 Agent（红线/升级/提交/交接协议） |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | 开发者（平面/组件/状态机/时序/约束） |
 | [docs/COMMANDS.md](docs/COMMANDS.md) | 使用者（命令全集） |
 | [docs/STATES.md](docs/STATES.md) | 所有人（三种状态环速查） |
-| [CHANGELOG.md](CHANGELOG.md) / [MANIFEST.md](MANIFEST.md) | 版本史 / 维护速查 |
-| [CONTEXT_CONTINUITY_SYSTEM_DESIGN_V4.md](CONTEXT_CONTINUITY_SYSTEM_DESIGN_V4.md) | 设计文档 |
+| [docs/CHANGELOG.md](docs/CHANGELOG.md) / [docs/MANIFEST.md](docs/MANIFEST.md) | 版本史 / 维护速查 |
+| [docs/design/CONTEXT_CONTINUITY_SYSTEM_DESIGN_V4.md](docs/design/CONTEXT_CONTINUITY_SYSTEM_DESIGN_V4.md) | 设计文档 |
 
 ## 许可
 

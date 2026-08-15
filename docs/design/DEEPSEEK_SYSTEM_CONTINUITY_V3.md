@@ -149,7 +149,7 @@ Create a persistent, user-level DeepSeek Harness context-continuity capability t
 
 Read:
 
-<ABSOLUTE_PACKET_DIR>/CONTEXT_CONTINUITY_SYSTEM_DESIGN_V3.md
+<ABSOLUTE_PACKET_DIR>/docs/design/CONTEXT_CONTINUITY_SYSTEM_DESIGN_V3.md
 
 The current workspace is only this Creation Mode session's temporary cwd. It is not the target installation location.
 
@@ -712,7 +712,7 @@ Use:
 - `CREATION_MODE_INITIAL_PROMPT_SYSTEM_LEVEL.md`  
   Send this to the built-in Creation Mode.
 
-- `CONTEXT_CONTINUITY_SYSTEM_DESIGN_V3.md`  
+- `docs/design/CONTEXT_CONTINUITY_SYSTEM_DESIGN_V3.md`  
   Full system-level architecture brief.
 
 - `SYSTEM_LEVEL_EXPLANATION.md`  
