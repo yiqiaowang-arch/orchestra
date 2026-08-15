@@ -36,7 +36,6 @@
 | 自动实现一个目标 | `/mission <目标>` · `/mission_status` · `/mission resume` |
 | 链接两个会话 | `/coordinate <session-id>` |
 | 星型协调已有会话 | `/coordinate-hub <spoke-id>… [-- 你的想法]` · `/coordinate-intake` |
-| 定向指挥 / 重要升级 | `/relay <id> <消息>` · `/steer <id> <消息> [--force]` |
 | 只读窥视 | `/session-peek <id> [n] [--full]` |
 | 会话清单 | `/sessions` · `/sessions_active` · `/current_session` |
 | 节奏自省 | `/pace` |
@@ -71,6 +70,6 @@ powershell -ExecutionPolicy Bypass -File install.ps1
 | [CHANGELOG.md](CHANGELOG.md) / [MANIFEST.md](MANIFEST.md) | 版本史 / 维护速查 |
 | [CONTEXT_CONTINUITY_SYSTEM_DESIGN_V4.md](CONTEXT_CONTINUITY_SYSTEM_DESIGN_V4.md) | 设计文档 |
 
-## 声明
+## 许可
 
-本项目为 DeepSeek Harness 的个人能力扩展，运行于用户自有目录（`~/.dsh`），与业务仓库解耦；不修改出厂安装。可自由学习、修改、自用；对外分发前请替换绝对路径并重新验证安装脚本。
+本项目为 DeepSeek Harness（MIT）的个人能力扩展，运行于用户自有目录（`~/.dsh`），与业务仓库解耦；不修改出厂安装。采用与 DeepSeek Harness 相同的 [MIT License](LICENSE)。对外分发前请替换绝对路径并重新验证安装脚本。

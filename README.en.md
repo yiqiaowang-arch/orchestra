@@ -36,7 +36,6 @@ Five capability domains: relay (cross-session continuation) · parallelism (work
 | Auto-implement a goal | `/mission <goal>` · `/mission_status` · `/mission resume` |
 | Link two sessions | `/coordinate <session-id>` |
 | Coordinate existing sessions star-style | `/coordinate-hub <spoke-id>… [-- your thoughts]` · `/coordinate-intake` |
-| Direct a session / escalate something important | `/relay <id> <message>` · `/steer <id> <message> [--force]` |
 | Peek read-only | `/session-peek <id> [n] [--full]` |
 | List sessions | `/sessions` · `/sessions_active` · `/current_session` |
 | Pace self-check | `/pace` |
@@ -71,6 +70,6 @@ Then create a session, pick **Orchestra (Ensemble Mode)** in the preset selector
 | [CHANGELOG.md](CHANGELOG.md) / [MANIFEST.md](MANIFEST.md) | Version history / maintenance quick reference |
 | [CONTEXT_CONTINUITY_SYSTEM_DESIGN_V4.md](CONTEXT_CONTINUITY_SYSTEM_DESIGN_V4.md) | Design docs |
 
-## License note
+## License
 
-This project is a personal capability extension for DeepSeek Harness. It runs entirely in the user-owned directory (`~/.dsh`), is decoupled from any business repository, and never modifies the shipped installation. Free to learn from, modify, and use privately; before redistributing, replace the absolute paths and re-verify the install script.
+This project is a personal capability extension for DeepSeek Harness (MIT), running entirely in the user-owned directory (`~/.dsh`), decoupled from any business repository; it never modifies the shipped installation. Licensed under the [MIT License](LICENSE), same as DeepSeek Harness. Before redistributing, replace the absolute paths and re-verify the install script.
