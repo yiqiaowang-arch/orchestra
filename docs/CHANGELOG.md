@@ -1,5 +1,13 @@
 # CHANGELOG.md — 版本史
 
+## v27 — 协调链接持久化 + 空闲巡检（2026-08-16，同日晚）
+
+**插件 v27**（驱动器不变：rotation v7 / worktree v7 / mission v7 / shared v1；145/145 测试）
+
+- **链接耐久**：`/coordinate` `/coordinate-hub` 把链接以 `<!-- DSH_COORD_LINKS v1 -->` 记录注入各会话日志；进程重启后按会话惰性恢复（restore-once），转发与 hub 结构自动重建；`/uncoordinate` 同步改写。
+- **空闲激活**：有 spoke 的 hub 静默超 `hubCheckMinutes`（默认 15 分钟）且无入站消息时，主动 steer 轻量 "Coordinator check-in"（peek 去重感知 → 有完成/卡住则调解或报告 → 一切正常一行回复保持安静）；忙碌 agent 绝不打断；巡检由 host timer 驱动（无 timer 环境纯事件驱动）。
+- 测试 141 → **145**（+4：parseLinkRecord / hubCheckDue+clamp / 重启恢复 / 空闲接线）。
+
 ## v26/v7/v7/v7 — Orchestra 品牌 + mission 取消（2026-08-16）
 
 **插件 v26 · rotation v7 · worktree v7 · mission v7 · shared v1**（旧代次全部保留，141/141 测试）

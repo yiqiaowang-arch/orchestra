@@ -1,6 +1,6 @@
 /**
  * Focused unit tests for the continuity preset companion plugin
- * (C:\Users\wangy\.dsh\.agent-presets\continuity\continuity-plugin.v26.mjs).
+ * (C:\Users\wangy\.dsh\.agent-presets\continuity\continuity-plugin.v27.mjs).
  *
  * Run with: node continuity-unit-tests.mjs
  * Exit code 0 = all tests passed.
@@ -27,8 +27,12 @@ import {
   foldIncremental,
   paceDue,
   paceCheckPrompt,
-} from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v26.mjs'
-import continuityPlugin from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v26.mjs'
+  COORD_LINK_MARKER,
+  parseLinkRecord,
+  hubCheckDue,
+  hubCheckPrompt,
+} from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v27.mjs'
+import continuityPlugin from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v27.mjs'
 
 let passed = 0
 let failed = 0
@@ -715,6 +719,113 @@ test('coordination: /steer pushes a marked IMPORTANT message, refuses busy targe
   const usage = await cmd.handler({ agent: coord, rawInput: '', commandId: 'c98', signal: undefined })
   assert.equal(usage.kind, 'error')
   assert.match(usage.text, /Usage/)
+})
+
+test('coordination: parseLinkRecord reads durable hub/spoke/peer records (v27)', () => {
+  const hub = parseLinkRecord(COORD_LINK_MARKER + ' hub=s-hub spokes=s-a,s-b')
+  assert.deepEqual(hub, { hub: 's-hub', spokes: ['s-a', 's-b'] })
+  const spoke = parseLinkRecord('prefix\n' + COORD_LINK_MARKER + ' hub=s-hub\nsuffix')
+  assert.deepEqual(spoke, { hub: 's-hub' })
+  const peer = parseLinkRecord(COORD_LINK_MARKER + ' peers=s-back')
+  assert.deepEqual(peer, { peers: 's-back' })
+  const cleared = parseLinkRecord(COORD_LINK_MARKER + ' hub=')
+  assert.deepEqual(cleared, { hub: '' })
+  assert.equal(parseLinkRecord('no marker here'), null)
+  assert.equal(parseLinkRecord(''), null)
+  assert.equal(parseLinkRecord(undefined), null)
+  assert.match(hubCheckPrompt(20, 's-hub'), /Coordinator check-in/)
+})
+
+test('coordination: hubCheckDue gate + hubCheckMinutes clamp (v27)', () => {
+  assert.equal(hubCheckDue(null, { hubCheckMinutes: 15 }, Date.now()), false)
+  assert.equal(hubCheckDue({ lastCheckAt: Date.now() }, { hubCheckMinutes: 15 }, Date.now()), false)
+  assert.equal(hubCheckDue({ lastCheckAt: Date.now() - 5 * 60000 }, { hubCheckMinutes: 15 }, Date.now()), false)
+  assert.equal(hubCheckDue({ lastCheckAt: Date.now() - 16 * 60000 }, { hubCheckMinutes: 15 }, Date.now()), true)
+  assert.equal(sanitizeConfig({}).hubCheckMinutes, 15)
+  assert.equal(sanitizeConfig({ hubCheckMinutes: 9999 }).hubCheckMinutes, 120)
+  assert.equal(sanitizeConfig({ hubCheckMinutes: 0 }).hubCheckMinutes, 1)
+})
+
+test('coordination: links survive restart — restored from the durable log (v27)', async () => {
+  const sessionOf = (id) => ({ id, header: { cwd: 'C:\\w' }, events: [] })
+  const agentOf = (session) => ({
+    id: session.id,
+    session,
+    status: 'idle',
+    followup() {},
+    steer() {},
+    inject(message) { session.events.push({ type: 'user/message', seq: session.events.length + 1, data: { message } }) },
+  })
+  const hub = agentOf(sessionOf('s-hub'))
+  const spoke = agentOf(sessionOf('s-front'))
+  const sessions = { 's-hub': hub, 's-front': spoke }
+  const agents = { get(id) { return sessions[id] } }
+  const makeCtx = (commandsSvc, listeners) => ({
+    get(name) {
+      if (name === 'commands') return commandsSvc
+      if (name === 'agents') return agents
+      return undefined
+    },
+    on(event, listener) { listeners.push([event, listener]) }, effect(fn) { fn() },
+  })
+  // process generation A: link hub <-> spoke; durable records land in both logs
+  const defsA = []
+  const commandsA = { register(def) { defsA.push(def); return () => {} } }
+  continuityPlugin(makeCtx(commandsA, []), {})
+  const hubCmd = defsA.find((d) => d.name === 'coordinate-hub')
+  const linked = await hubCmd.handler({ agent: hub, rawInput: 's-front', commandId: 'c102', signal: undefined })
+  assert.equal(linked.kind, 'success', linked.text)
+  assert.ok(spoke.session.events.length >= 1, 'spoke log must carry a durable link record')
+  assert.ok(hub.session.events.length >= 1, 'hub log must carry a durable link record')
+  // process generation B: a restart — fresh plugin, same logs
+  const defsB = []
+  const commandsB = { register(def) { defsB.push(def); return () => {} } }
+  const listenersB = []
+  const received = []
+  hub.followup = (msg) => { if (msg.source && msg.source.kind === 'continuity-coord') received.push({ to: 's-hub', text: msg.content[0].text }) }
+  continuityPlugin(makeCtx(commandsB, listenersB), {})
+  // spoke replies after the restart → auto-forwarded to the hub again
+  const evListenersB = listenersB.filter(([e]) => e === 'session/event').map(([, l]) => l)
+  for (const l of evListenersB) l(spoke.session, { type: 'assistant/message', seq: 10, data: { message: { content: [{ type: 'text', text: '重启后完成的活' }] } } })
+  await new Promise((r) => setTimeout(r, 10))
+  assert.equal(received.length, 1, JSON.stringify(received))
+  assert.match(received[0].text, /重启后完成的活/)
+  // hub side restored too: intake reaches the spoke
+  const spokeGot = []
+  spoke.followup = (msg) => { spokeGot.push(msg) }
+  const intake = defsB.find((d) => d.name === 'coordinate-intake')
+  const intakeOut = await intake.handler({ agent: hub, rawInput: '', commandId: 'c103', signal: undefined })
+  assert.equal(intakeOut.kind, 'success', intakeOut.text)
+  assert.equal(spokeGot.length, 1, 'intake must reach the spoke after restart')
+})
+
+test('coordination: idle hub arming — no premature check-in before the window (v27)', async () => {
+  const defs = []
+  const commands = { register(def) { defs.push(def); return () => {} } }
+  const steered = []
+  const hub = { id: 's-hub', session: { id: 's-hub', events: [] }, status: 'idle', steer(msg) { steered.push(msg) }, followup() {}, inject() {} }
+  const spoke = { id: 's-front', session: { id: 's-front', events: [] }, status: 'idle', followup() {}, inject() {} }
+  const sessions = { 's-hub': hub, 's-front': spoke }
+  const agents = { get(id) { return sessions[id] } }
+  const listeners = []
+  const ctx = {
+    get(name) {
+      if (name === 'commands') return commands
+      if (name === 'agents') return agents
+      return undefined
+    },
+    on(event, listener) { listeners.push([event, listener]) }, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx, {})
+  const hubCmd = defs.find((d) => d.name === 'coordinate-hub')
+  await hubCmd.handler({ agent: hub, rawInput: 's-front', commandId: 'c104', signal: undefined })
+  // the hub command steered the onboarding once; reset the counter
+  steered.length = 0
+  // the first idle transition only arms the window; nothing steered yet
+  for (const [event, listener] of listeners) {
+    if (event === 'agent/status') listener({ agent: hub, status: 'idle' })
+  }
+  assert.equal(steered.length, 0, 'no check-in before the silence window elapses')
 })
 
 test('coordination-hub: hub coordinates EXISTING sessions — spokes forward to hub, hub replies do not broadcast (v11)', async () => {
