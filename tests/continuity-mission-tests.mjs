@@ -1,6 +1,6 @@
 /**
  * Unit tests for the host-side continuity-mission driver
- * (C:\Users\wangy\.dsh\continuity-host\continuity-mission.v6.mjs).
+ * (C:\Users\wangy\.dsh\continuity-host\continuity-mission.v7.mjs).
  * Run with: node continuity-mission-tests.mjs
  */
 import { strict as assert } from 'node:assert'
@@ -15,8 +15,8 @@ import {
   findMissionCheckpoint,
   missionGoalFromCheckpoint,
   missionSummary,
-} from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-mission.v6.mjs'
-import continuityMission from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-mission.v6.mjs'
+} from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-mission.v7.mjs'
+import continuityMission from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-mission.v7.mjs'
 import { MISSION_MARKER } from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-shared.v1.mjs'
 
 let passed = 0
@@ -131,6 +131,46 @@ test('start: usage errors and running-mission idempotency', async () => {
   assert.match(status.text, /goal text/)
 })
 
+test('stop: cancels a running mission — phase cancelled, waits cleared, resume rejected, start allowed (v7)', async () => {
+  const provided = {}
+  const ctx = {
+    get(name) { return name === 'timer' ? { timeout() { return new Promise(() => {}) } } : undefined },
+    on() {},
+    provide(name, value) { provided[name] = value },
+  }
+  continuityMission(ctx, {})
+  const agent = { id: 'c1b', session: { id: 'c1b', header: {}, events: [] }, steer() {} }
+  await provided[SERVICE].start(agent, 'a mission to cancel')
+  assert.match(provided[SERVICE].status(agent).text, /phase: planning/)
+  const stopped = await provided[SERVICE].stop(agent)
+  assert.equal(stopped.kind, 'success', stopped.text)
+  assert.match(stopped.text, /Mission cancelled/)
+  const st = provided[SERVICE].status(agent)
+  assert.equal(st.kind, 'success')
+  assert.match(st.text, /phase: cancelled/)
+  assert.match(st.text, /已取消/)
+  const diag = provided[SERVICE].__diagnostics()
+  assert.equal(diag.waiterSessions, 0, 'waits table must be cleared')
+  assert.equal(diag.waiters, 0, 'waiters must be cleared')
+  // resume after cancel → rejected
+  const r = await provided[SERVICE].resume(agent)
+  assert.equal(r.kind, 'error')
+  assert.match(r.text, /cancelled/)
+  // a fresh mission is allowed after cancel
+  const again = await provided[SERVICE].start(agent, 'fresh mission')
+  assert.equal(again.kind, 'success')
+})
+
+test('stop: idle mission → honest error (v7)', async () => {
+  const provided = {}
+  const ctx = { get() { return undefined }, on() {}, provide(name, value) { provided[name] = value } }
+  continuityMission(ctx, {})
+  const agent = { id: 'c1c', session: { id: 'c1c', header: {}, events: [] }, steer() {} }
+  const stopped = await provided[SERVICE].stop(agent)
+  assert.equal(stopped.kind, 'error')
+  assert.match(stopped.text, /No running mission/)
+})
+
 test('start rejects when the goal is whitespace and reports status when idle', async () => {
   const provided = {}
   const ctx = { get() { return undefined }, on() {}, provide(name, value) { provided[name] = value } }
@@ -179,6 +219,8 @@ test('missionSummary: plain-language progress for every phase', () => {
   const failed = missionSummary({ phase: 'failed', tasks: [], results: [], error: 'plan step failed' }, undefined)
   assert.match(failed, /卡住了/)
   assert.match(failed, /plan step failed/)
+  const cancelled = missionSummary({ phase: 'cancelled', tasks: [], results: [], error: 'cancelled by /mission stop' }, undefined)
+  assert.match(cancelled, /已取消/)
 })
 
 // ── new P0/P2 coverage ────────────────────────────────────────────────────────

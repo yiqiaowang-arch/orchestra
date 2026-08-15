@@ -9,6 +9,7 @@ import { strict as assert } from 'node:assert'
 import { mkdtempSync, mkdirSync, existsSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, basename } from 'node:path'
+import { MISSION_MARKER as SHARED_MISSION_MARKER } from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-shared.v1.mjs'
 import {
   SERVICE,
   MISSION_MARKER,
@@ -21,8 +22,8 @@ import {
   classifyGitProbe,
   isWorktreeConflict,
   approvalOutcomeOfAnswer,
-} from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-worktree.v6.mjs'
-import continuityWorktree from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-worktree.v6.mjs'
+} from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-worktree.v7.mjs'
+import continuityWorktree from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-worktree.v7.mjs'
 
 let passed = 0
 let failed = 0
@@ -158,6 +159,11 @@ const modelService = { currentSelection: () => ({ provider: 'p', model: 'm' }) }
 const allowApproval = { overrideOf: () => 'never' }
 
 // ── pure helpers (existing) ─────────────────────────────────────────────────
+test('MISSION_MARKER is the shared single source (v7)', () => {
+  assert.equal(MISSION_MARKER, SHARED_MISSION_MARKER)
+  assert.equal(MISSION_MARKER, '<!-- DSH_MISSION v1 -->')
+})
+
 test('config defaults and clamping', () => {
   const cfg = sanitizeWorktreeConfig({})
   assert.equal(cfg.askApproval, true)

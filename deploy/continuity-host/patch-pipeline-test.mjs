@@ -7,8 +7,8 @@
  * (it assembles only the beacon + rotation rows + this runner). The mission
  * driver is therefore verified here by DIRECTLY importing its new versioned
  * file and instantiating it against a minimal fake ctx — this also proves the
- * file and its static dependency graph (continuity-plugin.v3.mjs,
- * continuity-worktree.v2.mjs) resolve in a fresh offline process.
+ * file and its static dependency graph (continuity-shared.v1.mjs) resolve in
+ * a fresh offline process.
  */
 import { writeFileSync } from 'node:fs'
 import continuityMission, {
@@ -17,7 +17,7 @@ import continuityMission, {
   scanWorkerEvents,
   findMissionCheckpoint,
   missionGoalFromCheckpoint,
-} from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-mission.v2.mjs'
+} from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-mission.v7.mjs'
 
 export default function patchPipelineTest(ctx, config) {
   const outPath = (config && config.outPath) || 'C:\\Users\\wangy\\.dsh\\continuity-host\\pipeline-result.json'

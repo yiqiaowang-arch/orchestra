@@ -1,6 +1,6 @@
 /**
  * Focused unit tests for the continuity preset companion plugin
- * (C:\Users\wangy\.dsh\.agent-presets\continuity\continuity-plugin.v25.mjs).
+ * (C:\Users\wangy\.dsh\.agent-presets\continuity\continuity-plugin.v26.mjs).
  *
  * Run with: node continuity-unit-tests.mjs
  * Exit code 0 = all tests passed.
@@ -27,8 +27,8 @@ import {
   foldIncremental,
   paceDue,
   paceCheckPrompt,
-} from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v25.mjs'
-import continuityPlugin from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v25.mjs'
+} from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v26.mjs'
+import continuityPlugin from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v26.mjs'
 
 let passed = 0
 let failed = 0
@@ -331,7 +331,7 @@ test('wiring: commands registered, listeners attached, effects reversible', () =
   }
   continuityPlugin(ctx, {})
   assert.deepEqual(defs.map((d) => d.name).sort(),
-    ['continue', 'continuity', 'coordinate', 'coordinate-hub', 'coordinate-intake', 'current_session', 'handoff', 'mission', 'mission_status', 'pace', 'relay', 'rotate', 'session-peek', 'sessions', 'sessions_active', 'steer', 'uncoordinate', 'worker-report', 'worker-send', 'worker-stop', 'worker-successor', 'workers', 'worktree', 'worktree-cleanup'])
+    ['continue', 'continuity', 'coordinate', 'coordinate-hub', 'coordinate-intake', 'current_session', 'handoff', 'mission', 'mission_status', 'pace', 'relay', 'rotate', 'session-peek', 'sessions', 'sessions_active', 'status', 'steer', 'uncoordinate', 'worker-report', 'worker-send', 'worker-stop', 'worker-successor', 'workers', 'worktree', 'worktree-cleanup'])
   const events = listeners.map(([event]) => event).sort()
   assert.deepEqual(events, ['agent/status', 'agent/turn-stopping', 'session/event', 'session/event'])
   // unload: every registration is removed through its disposer
@@ -401,6 +401,75 @@ test('wiring: /mission_status delegates to the host mission service (space-free 
   const missing = await defs2.find((d) => d.name === 'mission_status').handler({ agent, rawInput: '', commandId: 'c41', signal: undefined })
   assert.equal(missing.kind, 'error')
   assert.match(missing.text, /unavailable/)
+})
+
+test('wiring: /mission stop delegates to the host mission service (v26)', async () => {
+  const defs = []
+  const commands = { register(def) { defs.push(def); return () => {} } }
+  const calls = []
+  const mission = {
+    async start() { return { kind: 'success', text: 'started' } },
+    status() { return { kind: 'success', text: 'phase: idle' } },
+    stop(agent) { calls.push(['stop', agent.id]); return { kind: 'success', text: 'cancelled' } },
+  }
+  const session = sessionWith([])
+  const agent = { id: session.id, status: 'idle', session, options: {}, inject() {}, followup() {} }
+  const ctx = {
+    get(name) {
+      if (name === 'commands') return commands
+      if (name === 'continuityMission') return mission
+      return undefined
+    },
+    on() {}, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx, {})
+  const cmd = defs.find((d) => d.name === 'mission')
+  const stopped = await cmd.handler({ agent, rawInput: ' stop ', commandId: 'c99', signal: undefined })
+  assert.equal(stopped.kind, 'success', stopped.text)
+  assert.match(stopped.text, /cancelled/)
+  assert.deepEqual(calls, [['stop', agent.id]])
+  // driver without stop → honest error
+  const defs2 = []
+  const commands2 = { register(def) { defs2.push(def); return () => {} } }
+  const mission2 = { start() { return { kind: 'success', text: 'started' } }, status() { return { kind: 'success', text: 'phase: idle' } } }
+  const ctx2 = {
+    get(name) {
+      if (name === 'commands') return commands2
+      if (name === 'continuityMission') return mission2
+      return undefined
+    },
+    on() {}, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx2, {})
+  const unsupported = await defs2.find((d) => d.name === 'mission').handler({ agent, rawInput: ' stop ', commandId: 'c100', signal: undefined })
+  assert.equal(unsupported.kind, 'error')
+  assert.match(unsupported.text, /does not support/)
+})
+
+test('wiring: /status is a bare alias of /mission status (v26)', async () => {
+  const defs = []
+  const commands = { register(def) { defs.push(def); return () => {} } }
+  const calls = []
+  const mission = {
+    async start() { return { kind: 'success', text: 'started' } },
+    status(agent) { calls.push(['status', agent.id]); return { kind: 'success', text: 'phase: idle' } },
+  }
+  const session = sessionWith([])
+  const agent = { id: session.id, status: 'idle', session, options: {}, inject() {}, followup() {} }
+  const ctx = {
+    get(name) {
+      if (name === 'commands') return commands
+      if (name === 'continuityMission') return mission
+      return undefined
+    },
+    on() {}, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx, {})
+  const cmd = defs.find((d) => d.name === 'status')
+  assert.ok(cmd, 'status command registered')
+  const out = await cmd.handler({ agent, rawInput: '', commandId: 'c101', signal: undefined })
+  assert.equal(out.kind, 'success', out.text)
+  assert.deepEqual(calls, [['status', agent.id]])
 })
 
 test('coordination: /coordinate links two sessions and /uncoordinate breaks the link (v10)', async () => {

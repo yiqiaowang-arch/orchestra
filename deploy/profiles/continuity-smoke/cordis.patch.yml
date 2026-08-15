@@ -6,7 +6,7 @@
       name: file:///C:/Users/wangy/.dsh/continuity-host/rotation-beacon.mjs
 
     - id: continuity-rotation
-      name: file:///C:/Users/wangy/.dsh/continuity-host/continuity-rotation.v4.mjs
+      name: file:///C:/Users/wangy/.dsh/continuity-host/continuity-rotation.v7.mjs
 
     - id: patch-pipeline-runner
       name: file:///C:/Users/wangy/.dsh/continuity-host/patch-pipeline-test.mjs
