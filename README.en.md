@@ -3,13 +3,13 @@
 [![topic: dsh-plugin](https://img.shields.io/badge/topic-dsh--plugin-1F6FEB)](https://github.com/topics/dsh-plugin)
 English | [中文](README.md)
 
-> **One long task, moving across many context-bounded AI sessions.** Pressure measurable, handoffs verifiable, sessions resumable, work parallelizable, goals auto-orchestrated, sessions coordinateable — like an orchestra: one conductor, several sections, one score, and players rotate without stopping the show.
+> Keep one long task moving across many context-bounded AI sessions: pressure measurable, handoffs verifiable, sessions resumable, work parallelizable, goals auto-orchestrated, sessions coordinateable.
 
 ## Motivation
 
 1. **Context windows are finite.** By the second half of a long task the model forgets, slows down, gets compacted, and eventually cannot continue.
 2. **Manual copy-paste continuation is unreliable.** Copying an old conversation into a new one loses information, cannot be verified, and does not guarantee "pick up exactly the next step".
-3. **You want an ensemble, not a solo.** Complex work should be done by parallel sessions (sections) coordinated by one conductor, and any session should be able to **rotate** (substitute players) when its context fills up — without stopping the show.
+3. **Complex work needs collaboration.** Parallel sessions each work on a piece while one coordinator keeps the whole picture; any session can rotate into a fresh one when its context fills up, without interrupting the task.
 
 ## Approach
 
@@ -17,11 +17,11 @@ Everything is **user-level assembly**, zero intrusion into the shipped Harness, 
 
 | Layer | Location | Role |
 |---|---|---|
-| Agent preset | `~/.dsh/.agent-presets/continuity/` | 24 commands + role discipline + per-session state machine; pick it in the GUI preset selector and go |
-| Host drivers | `~/.dsh/continuity-host/` (rotation / worktree / mission) | Rotation, parallel workers, auto-orchestration — process-level services, hot-applied via the profile patch layer |
-| Durable checkpoint | the session message stream (marker + 8 sections) | Restarts, rotations and new sessions recover from the log; nothing depends on memory |
+| Agent preset | `~/.dsh/.agent-presets/continuity/` | 24 commands + role discipline; pick it in the GUI preset selector and go |
+| Host drivers | `~/.dsh/continuity-host/` | Rotation, parallel workers, auto-orchestration — hot-applied via the profile patch layer |
+| Durable checkpoint | the session message stream | Restarts, rotations and new sessions recover from the log; nothing depends on memory |
 
-Five capability domains (orchestra metaphor): **relay/handoff** (player rotation) · **parallelism** (sections) · **orchestration** (score) · **coordination** (conductor) · **pace** (tempo).
+Five capability domains: relay (cross-session continuation) · parallelism (worktree workers) · orchestration (mission) · coordination (multi-session hub) · pace.
 
 ## Usage
 
@@ -50,21 +50,10 @@ Prerequisite: DeepSeek Harness installed (`DSH_HOME`, default `~/.dsh`).
 ```powershell
 git clone https://github.com/yiqiaowang-arch/orchestra.git
 cd orchestra
-powershell -ExecutionPolicy Bypass -File install.ps1   # one-shot install (backs up existing patches)
+powershell -ExecutionPolicy Bypass -File install.ps1
 ```
 
-Or copy the `deploy/` mirror to the real runtime locations manually (`deploy\agent-presets\continuity\` → `%DSH_HOME%\.agent-presets\continuity\`, and likewise for the host drivers and the web patch — see install.ps1).
-
-Then create a session, pick **Orchestra (Ensemble Mode)** in the preset selector (formerly known as 接力模式 / Relay Mode), and run `/continuity` — seeing tokens / capacity / ratio means it works.
-
-## Verification
-
-```powershell
-node tests\continuity-unit-tests.mjs      # 64
-node tests\continuity-rotation-tests.mjs  # 20
-node tests\continuity-worktree-tests.mjs  # 31
-node tests\continuity-mission-tests.mjs   # 21   —— total 136, all green
-```
+Then create a session, pick **Orchestra (Ensemble Mode)** in the preset selector, and run `/continuity` — seeing tokens / capacity / ratio means it works.
 
 ## Docs
 
@@ -76,7 +65,7 @@ node tests\continuity-mission-tests.mjs   # 21   —— total 136, all green
 | [docs/COMMANDS.md](docs/COMMANDS.md) | Users (full command reference) |
 | [docs/STATES.md](docs/STATES.md) | Everyone (the three state-loop cheat sheet) |
 | [CHANGELOG.md](CHANGELOG.md) / [MANIFEST.md](MANIFEST.md) | Version history / maintenance quick reference |
-| [CONTEXT_CONTINUITY_SYSTEM_DESIGN_V4.md](CONTEXT_CONTINUITY_SYSTEM_DESIGN_V4.md) | Design docs (V4 contains all measured constraints) |
+| [CONTEXT_CONTINUITY_SYSTEM_DESIGN_V4.md](CONTEXT_CONTINUITY_SYSTEM_DESIGN_V4.md) | Design docs |
 
 ## License note
 
