@@ -29,7 +29,7 @@
 |---|---|
 | 看上下文还剩多少 | `/continuity` |
 | 存档后继续 | `/handoff` |
-| 从旧会话续接 | `/continue <session-id>` |
+| 从旧会话续跑 | `/continue <session-id>` |
 | 一键换新会话 | `/rotate` |
 | 开启并行任务 | `/worktree <任务简报>` |
 | 管理 worker | `/workers` · `/worker-report <id>` · `/worker-send <id> <消息>` · `/worker-stop <id>` |
