@@ -8,7 +8,7 @@
 ## 动机
 
 1. **上下文窗口有限**：长任务跑到后半程，模型会遗忘、变慢、被压缩，最后无法继续。
-2. **手工续写不可靠**：把旧对话内容复制给新对话，会丢信息、无法验证、不保证"接着上次的下一步"。
+2. **手工续写不可靠**：把旧对话内容复制给新对话，会丢信息、无法验证、不保证"从上次的下一步继续"。
 3. **复杂任务需要协作**：多个并行会话各干一段，由一个协调者统筹；任何会话上下文快满时都能无缝轮换到新会话，任务不中断。
 
 ## 做法
@@ -28,11 +28,11 @@
 | 你想…… | 敲 |
 |---|---|
 | 看上下文还剩多少 | `/continuity` |
-| 存个档再继续 | `/handoff` |
-| 从旧会话接着干 | `/continue <session-id>` |
+| 存档后继续 | `/handoff` |
+| 从旧会话续接 | `/continue <session-id>` |
 | 一键换新会话 | `/rotate` |
-| 开一个并行任务 | `/worktree <任务简报>` |
-| 管 worker | `/workers` · `/worker-report <id>` · `/worker-send <id> <消息>` · `/worker-stop <id>` |
+| 开启并行任务 | `/worktree <任务简报>` |
+| 管理 worker | `/workers` · `/worker-report <id>` · `/worker-send <id> <消息>` · `/worker-stop <id>` |
 | 自动实现一个目标 | `/mission <目标>` · `/mission_status` · `/mission resume` |
 | 链接两个会话 | `/coordinate <session-id>` |
 | 星型协调已有会话 | `/coordinate-hub <spoke-id>… [-- 你的想法]` · `/coordinate-intake` |
