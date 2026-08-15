@@ -47,6 +47,8 @@ Full command reference: [`docs/COMMANDS.md`](docs/COMMANDS.md).
 
 Prerequisite: DeepSeek Harness installed (`DSH_HOME`, default `~/.dsh`).
 
+Run from **any directory** (the clone location does not matter: the installer copies the `deploy/` mirror into `~/.dsh`; the repo folder is just a staging area):
+
 ```powershell
 git clone https://github.com/yiqiaowang-arch/orchestra.git
 cd orchestra
@@ -54,6 +56,8 @@ powershell -ExecutionPolicy Bypass -File install.ps1
 ```
 
 Then create a session, pick **Orchestra (Ensemble Mode)** in the preset selector, and run `/continuity` — seeing tokens / capacity / ratio means it works.
+
+> Platform: currently Windows-first. On macOS / Linux you need PowerShell Core (`brew install powershell` → `pwsh`) to run the installer, and the preset's shell tooling currently enables only the Windows pwsh — macOS / Linux are not adapted yet.
 
 ## Docs
 

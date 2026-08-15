@@ -47,6 +47,8 @@
 
 前提：已部署 DeepSeek Harness（`DSH_HOME`，默认 `~/.dsh`）。
 
+在**任意目录**执行（克隆到哪都行：安装脚本会把 `deploy/` 镜像复制进 `~/.dsh`，这个目录只是暂存区）：
+
 ```powershell
 git clone https://github.com/yiqiaowang-arch/orchestra.git
 cd orchestra
@@ -54,6 +56,8 @@ powershell -ExecutionPolicy Bypass -File install.ps1
 ```
 
 然后新建会话，预设选择器选 **Orchestra（乐团模式）**，跑 `/continuity` 看到 tokens / 容量 / 比率即成功。
+
+> 平台：当前面向 Windows。macOS / Linux 需自装 PowerShell Core（`brew install powershell` → `pwsh`）才能运行安装脚本；且本预设的 shell 工具链目前只启用了 Windows 的 pwsh，macOS / Linux 暂未适配。
 
 ## 文档索引
 
