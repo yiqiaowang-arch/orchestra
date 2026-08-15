@@ -54,7 +54,7 @@ cd orchestra
 powershell -ExecutionPolicy Bypass -File scripts/install.ps1
 ```
 
-Then create a session, pick **Orchestra (Ensemble Mode)** in the preset selector, and run `/continuity` — seeing tokens / capacity / ratio means it works.
+Then create a session, pick **Orchestra** in the preset selector, and run `/continuity` — seeing tokens / capacity / ratio means it works.
 
 > Platform: currently Windows-first. On macOS / Linux you need PowerShell Core (`brew install powershell` → `pwsh`) to run the installer, and the preset's shell tooling currently enables only the Windows pwsh — macOS / Linux are not adapted yet.
 

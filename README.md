@@ -54,7 +54,7 @@ cd orchestra
 powershell -ExecutionPolicy Bypass -File scripts/install.ps1
 ```
 
-然后新建会话，预设选择器选 **Orchestra（乐团模式）**，跑 `/continuity` 看到 tokens / 容量 / 比率即成功。
+然后新建会话，预设选择器选 **Orchestra**，跑 `/continuity` 看到 tokens / 容量 / 比率即成功。
 
 > 平台：当前面向 Windows。macOS / Linux 需自装 PowerShell Core（`brew install powershell` → `pwsh`）才能运行安装脚本；且本预设的 shell 工具链目前只启用了 Windows 的 pwsh，macOS / Linux 暂未适配。
 

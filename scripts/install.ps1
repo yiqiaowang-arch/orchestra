@@ -56,7 +56,7 @@ Copy-AllFiles (Join-Path $deploy 'profiles\continuity-smoke') (Join-Path $dshHom
 Write-Output ''
 Write-Output '安装完成。下一步：'
 Write-Output '  1. 刷新 GUI（补丁层热应用，几秒内生效）；'
-Write-Output '  2. 任意 workspace 新建会话，预设选择器选「Orchestra（乐团模式）」；'
+Write-Output '  2. 任意 workspace 新建会话，预设选择器选「Orchestra」；'
 Write-Output '  3. 跑 /continuity —— 应看到 tokens/容量/比率 与 worker visibility 行。'
 Write-Output ''
 Write-Output '注意：已存在的会话仍使用旧代次（standing mount 按代次），新会话自动用最新版。'

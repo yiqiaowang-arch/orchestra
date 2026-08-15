@@ -1,2 +1,2 @@
-name: Orchestra（乐团模式）
-description: 基于标准模式的完整编码 Agent：上下文压力监测、可验证交接与跨会话继续（接力）、worktree 并行 worker（声部）、有界 mission 编排（乐谱）、多会话协调 hub 与重要升级（指挥）、节奏感知（节拍）。曾用名：接力模式。
+name: Orchestra
+description: 基于标准模式的完整编码 Agent。监测上下文压力，任务太长时保存交接点、跨会话继续；支持并行 worker、自动任务编排，也能把多个会话组织起来一起协作。全部功能位于 ~/.dsh，不修改出厂安装。
