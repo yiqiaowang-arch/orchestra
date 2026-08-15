@@ -25,7 +25,7 @@ Five capability domains: relay (cross-session continuation) · parallelism (work
 
 ## Usage
 
-| You want to… | Type |
+| Scenario | Command |
 |---|---|
 | See how much context is left | `/continuity` |
 | Save a checkpoint and keep going | `/handoff` |
