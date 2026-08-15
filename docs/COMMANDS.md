@@ -1,6 +1,6 @@
 # COMMANDS.md — Orchestra（乐团模式）命令全集
 
-> 当前版本：预设插件 v27 / rotation v7 / worktree v7 / mission v7 / shared v1。
+> 当前版本：预设插件 v28 / rotation v7 / worktree v7 / mission v7 / shared v1。
 > 25 条专属命令 + 6 条继承自标准模式。
 
 ## 一、接力（上下文健康）
@@ -73,6 +73,7 @@ phase / goal / 每任务裁决 / worker 矩阵 / 最近错误（首行说人话�
 ### `/coordinate-hub <spoke-id>… [-- 你的想法]`
 本会话成为对**已有会话**的星型协调者：每个 spoke 的回复单向自动转发到 hub；激活即注入上任引导（spoke 是兄弟会话非 subagent——用 `/session-peek` 窥视、`/coordinate-intake` 一次、综合后**停下等用户**）；`--` 后内容作为你的想法折叠进引导；无想法时 coordinator 会主动问你想要什么。
 - **v27 耐久**：链接写入会话日志，重启后自动恢复；hub 静默超过 `hubCheckMinutes`（默认 15 分钟）自动 check-in 各 spoke（有完成/卡住则调解，否则保持安静）。
+- **v28 标记闸门**：配置 `coordinateForwardMarker`（默认空）后，仅含该抬头的终局消息自动转发——spoke 想请 coordinator 介入就加抬头，其余进度由巡检覆盖（hub 上下文零 ack 噪音）。
 
 ### `/coordinate-intake`
 对全部 spoke 重跑状态同步问题（任务/进展/阻塞），回复自动转发回来供综合。

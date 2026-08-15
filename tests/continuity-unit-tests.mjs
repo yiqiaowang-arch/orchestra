@@ -1,6 +1,6 @@
 /**
  * Focused unit tests for the continuity preset companion plugin
- * (C:\Users\wangy\.dsh\.agent-presets\continuity\continuity-plugin.v27.mjs).
+ * (C:\Users\wangy\.dsh\.agent-presets\continuity\continuity-plugin.v28.mjs).
  *
  * Run with: node continuity-unit-tests.mjs
  * Exit code 0 = all tests passed.
@@ -31,8 +31,8 @@ import {
   parseLinkRecord,
   hubCheckDue,
   hubCheckPrompt,
-} from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v27.mjs'
-import continuityPlugin from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v27.mjs'
+} from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v28.mjs'
+import continuityPlugin from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v28.mjs'
 
 let passed = 0
 let failed = 0
@@ -826,6 +826,82 @@ test('coordination: idle hub arming — no premature check-in before the window 
     if (event === 'agent/status') listener({ agent: hub, status: 'idle' })
   }
   assert.equal(steered.length, 0, 'no check-in before the silence window elapses')
+})
+
+test('coordination: forward marker gate — only flagged final messages forward (v28)', async () => {
+  const defs = []
+  const commands = { register(def) { defs.push(def); return () => {} } }
+  const listeners = []
+  const received = []
+  const hub = { id: 's-hub', session: { id: 's-hub', events: [] }, status: 'idle', followup(msg) { if (msg.source && msg.source.kind === 'continuity-coord') received.push({ to: 's-hub', text: msg.content[0].text }) }, steer() {}, inject() {} }
+  const spoke = { id: 's-front', session: { id: 's-front', events: [] }, status: 'idle', followup() {}, inject() {} }
+  const sessions = { 's-hub': hub, 's-front': spoke }
+  const agents = { get(id) { return sessions[id] } }
+  const ctx = {
+    get(name) {
+      if (name === 'commands') return commands
+      if (name === 'agents') return agents
+      return undefined
+    },
+    on(event, listener) { listeners.push([event, listener]) }, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx, { coordinateForwardMarker: '请coordinate以下消息' })
+  const hubCmd = defs.find((d) => d.name === 'coordinate-hub')
+  await hubCmd.handler({ agent: hub, rawInput: 's-front', commandId: 'c105', signal: undefined })
+  const evListeners = listeners.filter(([e]) => e === 'session/event').map(([, l]) => l)
+  // an unmarked turn-final message stays silent
+  for (const l of evListeners) l(spoke.session, { type: 'assistant/message', seq: 1, data: { message: { content: [{ type: 'text', text: '进度：接口写了一半' }] } } })
+  await new Promise((r) => setTimeout(r, 10))
+  assert.equal(received.length, 0, 'unmarked messages must not be forwarded')
+  // a flagged message reaches the hub
+  for (const l of evListeners) l(spoke.session, { type: 'assistant/message', seq: 2, data: { message: { content: [{ type: 'text', text: '请coordinate以下消息：接口契约有分歧，需要你定' }] } } })
+  await new Promise((r) => setTimeout(r, 10))
+  assert.equal(received.length, 1, JSON.stringify(received))
+  assert.match(received[0].text, /接口契约有分歧/)
+  // intermediate step with the marker still does NOT forward (v22 wins)
+  for (const l of evListeners) l(spoke.session, { type: 'assistant/message', seq: 3, data: { message: { content: [{ type: 'text', text: '请coordinate以下消息：我先查一下' }, { type: 'tool_use', name: 'pwsh', input: {} }] } } })
+  await new Promise((r) => setTimeout(r, 10))
+  assert.equal(received.length, 1, 'intermediate steps never forward, marker or not')
+  // config clamp: non-string marker falls back to ''
+  assert.equal(sanitizeConfig({ coordinateForwardMarker: 42 }).coordinateForwardMarker, '')
+  assert.equal(sanitizeConfig({}).coordinateForwardMarker, '')
+})
+
+test('coordination: full-log restore fallback via readSession (v28)', async () => {
+  const defs = []
+  const commands = { register(def) { defs.push(def); return () => {} } }
+  const listeners = []
+  const received = []
+  const hub = { id: 's-hub', session: { id: 's-hub', events: [] }, status: 'idle', followup(msg) { if (msg.source && msg.source.kind === 'continuity-coord') received.push({ to: 's-hub', text: msg.content[0].text }) }, steer() {}, inject() {} }
+  // the spoke's in-memory events were compacted away — the record lives only in the durable store
+  const spoke = { id: 's-front', session: { id: 's-front', events: [] }, status: 'idle', followup() {}, inject() {} }
+  const sessions = { 's-hub': hub, 's-front': spoke }
+  const agents = { get(id) { return sessions[id] } }
+  const sessionQuery = {
+    readSession: async () => ({
+      events: [{ type: 'user/message', seq: 1, data: { message: userMessage(COORD_LINK_MARKER + ' peers=s-hub', 'continuity-links') } }],
+    }),
+  }
+  const ctx = {
+    get(name) {
+      if (name === 'commands') return commands
+      if (name === 'agents') return agents
+      if (name === 'sessionQuery') return sessionQuery
+      return undefined
+    },
+    on(event, listener) { listeners.push([event, listener]) }, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx, {})
+  const evListeners = listeners.filter(([e]) => e === 'session/event').map(([, l]) => l)
+  // first event: sync restore finds nothing, the readSession fallback kicks in
+  for (const l of evListeners) l(spoke.session, { type: 'assistant/message', seq: 10, data: { message: { content: [{ type: 'text', text: '第一波' }] } } })
+  await new Promise((r) => setTimeout(r, 20))
+  assert.equal(received.length, 0, 'the first event predates the async restore')
+  // second event: links are restored from the durable store → forwarded
+  for (const l of evListeners) l(spoke.session, { type: 'assistant/message', seq: 11, data: { message: { content: [{ type: 'text', text: '第二波' }] } } })
+  await new Promise((r) => setTimeout(r, 10))
+  assert.equal(received.length, 1, JSON.stringify(received))
+  assert.match(received[0].text, /第二波/)
 })
 
 test('coordination-hub: hub coordinates EXISTING sessions — spokes forward to hub, hub replies do not broadcast (v11)', async () => {

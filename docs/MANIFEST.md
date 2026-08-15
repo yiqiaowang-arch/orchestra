@@ -8,13 +8,13 @@
 
 | 组件 | 当前版本 | 真实位置 | 被引用处 |
 |---|---|---|---|
-| 预设插件 | **v27** | `~/.dsh/.agent-presets/continuity/continuity-plugin.v27.mjs` | `agent.cordis.yml`（continuity group 内） |
+| 预设插件 | **v28** | `~/.dsh/.agent-presets/continuity/continuity-plugin.v28.mjs` | `agent.cordis.yml`（continuity group 内） |
 | 轮换驱动器 | **v7** | `~/.dsh/continuity-host/continuity-rotation.v7.mjs` | `profiles/web/cordis.patch.yml`、`profiles/continuity-smoke/cordis.patch.yml` |
 | worktree 驱动器 | **v7** | `~/.dsh/continuity-host/continuity-worktree.v7.mjs` | `profiles/web/cordis.patch.yml` |
 | mission 驱动器 | **v7** | `~/.dsh/continuity-host/continuity-mission.v7.mjs` | `profiles/web/cordis.patch.yml` |
 | shared | **v1** | `~/.dsh/continuity-host/continuity-shared.v1.mjs` | 三个驱动器 import（checkpoint/mission marker 单一真相源） |
 
-旧代次（插件 v1..v26、rotation base/v2..v6、worktree v1..v6、mission v1..v6）**全部保留**——运行中的进程可能仍引用它们，禁止删除。
+旧代次（插件 v1..v27、rotation base/v2..v6、worktree v1..v6、mission v1..v6）**全部保留**——运行中的进程可能仍引用它们，禁止删除。
 
 ## 文档索引
 
@@ -33,10 +33,10 @@
 ## 测试与验证
 
 ```powershell
-node tests\continuity-unit-tests.mjs      # 70 项
+node tests\continuity-unit-tests.mjs      # 72 项
 node tests\continuity-rotation-tests.mjs  # 20 项
 node tests\continuity-worktree-tests.mjs  # 32 项
-node tests\continuity-mission-tests.mjs   # 23 项  （合计 145）
+node tests\continuity-mission-tests.mjs   # 23 项  （合计 147）
 node tests\validate-mermaid.mjs           # 所有 ```mermaid 图必须解析通过
 node C:\Users\wangy\Documents\GitHub\deepseek-harness\apps\cli\lib\bin.js --profile web --dump-config
 node C:\Users\wangy\Documents\GitHub\deepseek-harness\apps\cli\lib\bin.js --profile continuity-smoke
