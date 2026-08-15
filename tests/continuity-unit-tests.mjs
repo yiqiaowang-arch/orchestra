@@ -1,6 +1,6 @@
 /**
  * Focused unit tests for the continuity preset companion plugin
- * (C:\Users\wangy\.dsh\.agent-presets\continuity\continuity-plugin.v29.mjs).
+ * (C:\Users\wangy\.dsh\.agent-presets\continuity\continuity-plugin.v30.mjs).
  *
  * Run with: node continuity-unit-tests.mjs
  * Exit code 0 = all tests passed.
@@ -31,8 +31,9 @@ import {
   parseLinkRecord,
   hubCheckDue,
   hubCheckPrompt,
-} from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v29.mjs'
-import continuityPlugin from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v29.mjs'
+  WORKER_REPORT_MARKER,
+} from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v30.mjs'
+import continuityPlugin from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v30.mjs'
 
 let passed = 0
 let failed = 0
@@ -867,6 +868,35 @@ test('coordination: forward marker gate — only flagged final messages forward 
   assert.equal(sanitizeConfig({}).coordinateForwardMarker, '')
 })
 
+test('coordination: completion reports forward even without the marker (v30)', async () => {
+  const defs = []
+  const commands = { register(def) { defs.push(def); return () => {} } }
+  const listeners = []
+  const received = []
+  const hub = { id: 's-hub', session: { id: 's-hub', events: [] }, status: 'idle', followup(msg) { if (msg.source && msg.source.kind === 'continuity-coord') received.push({ to: 's-hub', text: msg.content[0].text }) }, steer() {}, inject() {} }
+  const spoke = { id: 's-front', session: { id: 's-front', events: [] }, status: 'idle', followup() {}, inject() {} }
+  const sessions = { 's-hub': hub, 's-front': spoke }
+  const agents = { get(id) { return sessions[id] } }
+  const ctx = {
+    get(name) {
+      if (name === 'commands') return commands
+      if (name === 'agents') return agents
+      return undefined
+    },
+    on(event, listener) { listeners.push([event, listener]) }, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx, { coordinateForwardMarker: '请coordinate以下消息' })
+  const hubCmd = defs.find((d) => d.name === 'coordinate-hub')
+  await hubCmd.handler({ agent: hub, rawInput: 's-front', commandId: 'c106', signal: undefined })
+  const evListeners = listeners.filter(([e]) => e === 'session/event').map(([, l]) => l)
+  // a finished spoke that sees nothing to coordinate still reports completion
+  for (const l of evListeners) l(spoke.session, { type: 'assistant/message', seq: 1, data: { message: { content: [{ type: 'text', text: '## Worker report\ndone: 完成了\nfiles: 无\nverification: 通过' }] } } })
+  await new Promise((r) => setTimeout(r, 10))
+  assert.equal(received.length, 1, JSON.stringify(received))
+  assert.match(received[0].text, /完成了/)
+  assert.equal(WORKER_REPORT_MARKER, '## Worker report')
+})
+
 test('coordination: full-log restore fallback via readSession (v28)', async () => {
   const defs = []
   const commands = { register(def) { defs.push(def); return () => {} } }
@@ -1399,6 +1429,7 @@ test('wiring: roles section carries the forward-marker protocol when configured 
   assert.equal(sections.length, 1)
   assert.match(sections[0].text, /forward marker protocol/)
   assert.match(sections[0].text, /请coordinate以下消息/)
+  assert.match(sections[0].text, /When you FINISH a task/)
   // without the marker configured the line is absent
   const sections2 = []
   const systemPrompt2 = { section(entry) { sections2.push(entry); return () => {} } }
