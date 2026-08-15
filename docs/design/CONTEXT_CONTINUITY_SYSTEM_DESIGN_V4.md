@@ -19,7 +19,7 @@
 | `/continue` 继续 | 精确 id→标题→唯一匹配；`sessionReferenceResolver.prepare` 有界快照；注入先于唤醒；只做 next atomic action | 真实模型回合验证 |
 | 压缩后自动准备 | `prepareAfterCompaction`，仅 root 会话 | 已验证（单元级） |
 | 会话级状态机 | pending / checkpointing / ready / failed，键为 sessionId | 代内内存；持久状态从日志重推，无假就绪 |
-| 测试设施 | `~/.dsh/designs/continuity-v3/tests/`（31 项为 V3 MVP 历史基线；当前 **147 项全绿**：unit 72 + rotation 20 + worktree 32 + mission 23，见 §7d/§7e）+ opt-scratch/smoke-a/smoke-b 草稿工作区 | 可扩展 |
+| 测试设施 | `~/.dsh/designs/continuity-v3/tests/`（31 项为 V3 MVP 历史基线；当前 **148 项全绿**：unit 73 + rotation 20 + worktree 32 + mission 23，见 §7d/§7e）+ opt-scratch/smoke-a/smoke-b 草稿工作区 | 可扩展 |
 
 **MVP 明确不做（本次设计要补的部分）**：自动新建会话、自动注入唤醒、自动 worktree、自动 coordinator/worker、同级会话消息通道。
 
@@ -172,7 +172,7 @@ plan → allocate → dispatch → collect → review → (converge | re-plan | 
 
 > 早期设计的 `handshake-max-rounds`、`merge-policy` 两键未实现（无 handshake 机制；合并永远人工、硬编码无设置）。
 
-命令面（预设插件 v28 注册共 **25 条**，分组）：
+命令面（预设插件 v29 注册共 **25 条**，分组）：
 - **接力（4）**：`continuity`、`handoff`、`continue`、`rotate`
 - **worker（7）**：`worktree`、`workers`、`worker-send`、`worker-stop`、`worker-report`、`worker-successor`、`worktree-cleanup`
 - **mission（3）**：`mission`（`<目标>` / `status` / `stop`）、`mission_status`（= `/mission status` 无空格别名）、`status`（裸别名）
@@ -207,14 +207,14 @@ MVP 三条命令（`/continuity` `/handoff` `/continue`）行为不变。
 
 **§7a 为 MVP V3 交付状态（见 V3 文档）**——§7 各子节从 §7b 起编号，记录 V4 各阶段交付。
 
-**跨代引用（A.8，G7 连带）**：三个 host 驱动器（rotation v7 / worktree v7 / mission v7）现统一从 `continuity-shared.v1.mjs`（绝对 file URL，`~/.dsh/continuity-host/`）导入纯 helper（MARKER/validateCheckpoint/userMessage/capText/textOfMessage/sectionBody/buildInstruction）——**checkpoint 格式单一真相源**；MISSION_MARKER 亦全部从 shared.v1 导入（mission v6/v7、worktree v7 收敛完成，worktree v7 再导出保持兼容）。活动预设挂 v28（`/sessions_active`、`/current_session`、有界 hub onboarding、`--` 用户想法、终局回复转发、peek 去重、`/steer` 重要升级、模式改名 Orchestra、`/mission stop` + 裸 `/status`、**协调链接持久化 + 空闲巡检 + 转发标记闸门** 见 §7e）。checkpoint 格式三代稳定；升级 checkpoint 格式时需同步 shared.v1 一处即可。
+**跨代引用（A.8，G7 连带）**：三个 host 驱动器（rotation v7 / worktree v7 / mission v7）现统一从 `continuity-shared.v1.mjs`（绝对 file URL，`~/.dsh/continuity-host/`）导入纯 helper（MARKER/validateCheckpoint/userMessage/capText/textOfMessage/sectionBody/buildInstruction）——**checkpoint 格式单一真相源**；MISSION_MARKER 亦全部从 shared.v1 导入（mission v6/v7、worktree v7 收敛完成，worktree v7 再导出保持兼容）。活动预设挂 v29（`/sessions_active`、`/current_session`、有界 hub onboarding、`--` 用户想法、终局回复转发、peek 去重、`/steer` 重要升级、模式改名 Orchestra、`/mission stop` + 裸 `/status`、**协调链接持久化 + 空闲巡检 + 转发标记闸门** 见 §7e）。checkpoint 格式三代稳定；升级 checkpoint 格式时需同步 shared.v1 一处即可。
 
 ---
 
 ## 7b. 阶段 A 交付状态（已实现）
 
 - host 驱动器 `continuity-rotation`（v7）经 `~/.dsh/profiles/web/cordis.patch.yml` 热应用上线，发布 `continuityRotation` 服务；配置为行内 config（`rotateRatio`/`autoRollover`(`off|suggest|auto`，默认 `suggest`)/`maxWaitMs`/`cooldownMs`/`oldSession`(`keep|archive`)，见 §6），由 loader 热重载——**替代设计文档 §6 的 settings 命名空间**（settings 注册需要 schemastery schema，零依赖插件不引入；行配置对用户等价可编辑）。v4 起新增：tick 增量游标（O(新事件)）；重复 `/rotate` 幂等；部分成功诚实上报；`waitForCheckpoint` 超时自清理；`rotateSuccessor`（worker successor 轮换，worker 永不自动轮换）。v6 新增：无效 checkpoint 尝试（有 marker 缺节）不再秒中止 `/rotate`，等待合法 checkpoint 受 `maxWaitMs` 约束；v7 新增：轮换 successor 创建后即挂靠源会话 workspace（`workspaceRegistry.attachSession`），GUI 归组不再落 Ungrouped。
-- 预设插件（v2 起，现 v28）：`/rotate` 命令 + `/continuity` 的 rollover 行（建议/禁用/进行中/自动武装 + 失败原因）。
+- 预设插件（v2 起，现 v29）：`/rotate` 命令 + `/continuity` 的 rollover 行（建议/禁用/进行中/自动武装 + 失败原因）。
 - 冒烟实测：终 checkpoint → 建会话（谱系 `parentSession`）→ 注入先于唤醒 → 只做 next action → 链保护拒绝 → 旧会话存活。rotation 20 项驱动器测试全绿（含链保护 / 幂等 / 部分成功诚实上报 / 无效 checkpoint 等待 / successor 工作区挂靠）。
 - 未实现（保留后续）：G3 建议卡 UI（当前 `/continuity` 文本建议 + `/rotate` 即确认）；`auto` 模式的 UI 开关（改行配置即开）。
 
@@ -223,7 +223,7 @@ MVP 三条命令（`/continuity` `/handoff` `/continue`）行为不变。
 ## 7c. 阶段 B 交付状态（已实现）
 
 - host 驱动器 `continuity-worktree`（v7）经同一 profile 补丁层热应用上线，发布 `continuityWorktree` 服务；授权门默认开启（会话审批政策非 `never` 时要求 `allowed-once`；`askApproval: false` 显式关闭）。v3 起新增：P0 错误路径修复（事务式回滚、重复启动幂等、审批拒绝零副作用、非 git 诚实分类）；spawn 后 `attachSession(workerId)`（GUI 工作区可见）；`/worktree-cleanup --dry-run|--confirm` 两步清理（保留目录与日志）；`/worker-stop` detach；配置键 `worktreeMarker`（默认 `-wt-`）。v5 新增：worker 完成通知（worker 发 `## Worker report` → coordinator 会话收到一次性提示，`notifyWorkerDone` 默认 true，覆盖普通 /worktree 与 mission 派发）；v6 新增（实验性）：worker 提权/审批请求经 `ctx.userQuestions` **转发到主对话**由人决定（`forwardWorkerApprovals` 默认 true，失败/超时回落到 worker 内提示）；v7：MISSION_MARKER 从 shared.v1 导入（收敛单一真相源，再导出保持兼容）。
-- 预设插件（v3 起，现 v28）：`/worktree <任务简报>`、`/workers`、`/worker-send <id> <msg>`、`/worker-stop <id>`、`/worker-report <id>` + `continuity-roles` 提示段（coordinator/worker 角色纪律，order 150）。
+- 预设插件（v3 起，现 v29）：`/worktree <任务简报>`、`/workers`、`/worker-send <id> <msg>`、`/worker-stop <id>`、`/worker-report <id>` + `continuity-roles` 提示段（coordinator/worker 角色纪律，order 150）。
 - worker = 独立会话（continuity 预设，`meta.cwd`=worktree，`parentSession`=coordinator，`delegationDepth: 1`）——谱系可追溯、语料可持久发现；worker→coordinator 走 `## Worker report` 消息 + `/worker-report` 拉取；coordinator→worker 走驱动器 `followup` 推送（仅活会话）；`/worker-stop` 取消。
 - Git 仓库 → `git worktree add <sibling>-wt-<slug> -b <slug>`；非 Git → 普通兄弟目录 + 诚实说明；均注册 `workspaceRegistry`。
 - 冒烟实测（真实模型回合）：git 路径 worker 在 worktree 建 `REPORT.md`（内容逐字节校验）→ 规范报告 → `/worker-send` 推送 → worker 回 ACK → `/worker-report` 拉到 → `/worker-stop` ✓；非 Git 路径 worker 建 `hello.txt` ✓；测试 worktree 已清理（合并/删除永远人工）。
@@ -235,14 +235,14 @@ MVP 三条命令（`/continuity` `/handoff` `/continue`）行为不变。
 - host 驱动器 `continuity-mission`（v7）经同一补丁层热应用上线，发布 `continuityMission` 服务：`/mission <目标>` 启动有界自动循环（plan → 分批派发 worktree worker → 收集 `## Worker report` → coordinator `VERDICT` 审查 → 有界 rework → closeout 持久 mission checkpoint），`/mission status` 全程可查；`/mission stop` 随时取消。
 - 驱动器拥有机制与预算（超时/轮数/并发/总预算全部配置化），模型拥有判断（分解/审查/收口），交互经严格标记格式（`TASK|`、`VERDICT:`、mission marker）；任何阶段失败 → 显式升级报告，绝不静默扩张。
 - 冒烟实测（真实模型回合）：高级目标自动分解为 2 个任务 → 2 个并行 worktree worker 各自完成（磁盘逐字节验证 `alpha-done`/`beta-done`）→ 双 approve → 持久 mission checkpoint（seq 2101）→ `phase: done`。测试 worktree/分支已清理。
-- 147 项单元测试全绿（unit 72 + rotation 20 + worktree 32 + mission 23）；基线 145 为上一代快照。
+- 148 项单元测试全绿（unit 73 + rotation 20 + worktree 32 + mission 23）；基线 147 为上一代快照。
 - v2 起新增：collect 增量游标（O(新事件)）；waits 超时清理 + timer 缺失三级兜底（不悬挂）；并发批次异常隔离；worker 非 live 恢复（`reworkError`）；`capTextSafe` 对安全截断（不劈开 UTF-16 代理对）；`/mission resume`（显式命令、不自动、已收敛幂等）。v4 新增：plan/review 提示要求 Markdown 摘要先行、`/mission status` 报 elapsed 与 settled 进度（人可读输出）；v5 修复：idle 任务 elapsed 显示 n/a 而非伪纪元时长（`startedAt: null`）；v6 新增：`/mission status` 首行说人话进度（`missionSummary`，如"已派 2 个任务给 worker，正在干活、等报告"）；v7 新增：`/mission stop` 取消（清 waits/timer、phase `cancelled` 终态、resume 拒绝、start 可重开、已派 worker 保持运行由 /worker-stop 单独停）。
-- 预设插件已迭代至 v28（活动预设挂 `./continuity-plugin.v28.mjs`）：v6 新增 `/mission_status`（`/mission status` 无空格别名，GUI 可能吞掉双 token 形式）；命令面现 25 条（分组见 §6）；v8-v17 为协调/节奏/纪律迭代（见 §7e）；v18 新增 `/sessions_active`（未归档且挂 workspace 组的会话，见 §7e）；v19 新增 `/current_session`（只回当前会话 id，见 §7e）；v20 收紧 hub 上任引导（spoke 是兄弟会话非 subagent——用 /session-peek，禁 list_agents/文件系统翻找；intake 一轮后停下等用户，见 §7e）；v21 支持 `/coordinate-hub <ids> [-- <用户想法>]` 同命令携带用户想法 + 无想法时 intake 后**主动问用户想干啥**（见 §7e）；v22 协调自动转发只转发**回合终局回复**（含 `tool_use` 的中间步消息不再打扰 coordinator，见 §7e）；v23 转发/窥视**双通道读一次**（已转发消息的 seq 记入账本，`/session-peek` 跳过之，`--full` 可强制重读，见 §7e）；v24 新增 `/steer <会话> <消息> [--force]` **重要消息升级推送**（打断目标思考链，忙碌拒绝 + `--force` 仅紧急，见 §7e）；v25 **模式改名**（人类名 → Orchestra（乐团模式），技术命名空间 continuity-* 不变，见 §7e）；v26 接线 `/mission stop`（委托 host mission v7）并新增**裸 `/status` 别名**（见 §7e）；v27 **协调链接持久化 + 空闲巡检**（`hubCheckMinutes` 默认 15，见 §7e）；v28 **转发标记闸门**（`coordinateForwardMarker` 默认空；设置后仅含抬头的终局消息转发）+ **readSession 全量日志恢复兜底**（见 §7e）；v5 新增的 `/worker-successor`、`/worktree-cleanup` 接线与配置键 `workerVisibility`（默认 true，子会话 workspace reconcile）、`cleanupSettledWorkers`（默认 false）保持。
+- 预设插件已迭代至 v29（活动预设挂 `./continuity-plugin.v29.mjs`）：v6 新增 `/mission_status`（`/mission status` 无空格别名，GUI 可能吞掉双 token 形式）；命令面现 25 条（分组见 §6）；v8-v17 为协调/节奏/纪律迭代（见 §7e）；v18 新增 `/sessions_active`（未归档且挂 workspace 组的会话，见 §7e）；v19 新增 `/current_session`（只回当前会话 id，见 §7e）；v20 收紧 hub 上任引导（spoke 是兄弟会话非 subagent——用 /session-peek，禁 list_agents/文件系统翻找；intake 一轮后停下等用户，见 §7e）；v21 支持 `/coordinate-hub <ids> [-- <用户想法>]` 同命令携带用户想法 + 无想法时 intake 后**主动问用户想干啥**（见 §7e）；v22 协调自动转发只转发**回合终局回复**（含 `tool_use` 的中间步消息不再打扰 coordinator，见 §7e）；v23 转发/窥视**双通道读一次**（已转发消息的 seq 记入账本，`/session-peek` 跳过之，`--full` 可强制重读，见 §7e）；v24 新增 `/steer <会话> <消息> [--force]` **重要消息升级推送**（打断目标思考链，忙碌拒绝 + `--force` 仅紧急，见 §7e）；v25 **模式改名**（人类名 → Orchestra（乐团模式），技术命名空间 continuity-* 不变，见 §7e）；v26 接线 `/mission stop`（委托 host mission v7）并新增**裸 `/status` 别名**（见 §7e）；v27 **协调链接持久化 + 空闲巡检**（`hubCheckMinutes` 默认 15，见 §7e）；v28 **转发标记闸门**（`coordinateForwardMarker` 默认空；设置后仅含抬头的终局消息转发）+ **readSession 全量日志恢复兜底**（见 §7e）；v29 标记协议写入**角色段**（spoke 自读，重启即生效，无需重跑 /coordinate-hub；默认装配已启用 `coordinateForwardMarker: 请coordinate以下消息`，见 §7e）；v5 新增的 `/worker-successor`、`/worktree-cleanup` 接线与配置键 `workerVisibility`（默认 true，子会话 workspace reconcile）、`cleanupSettledWorkers`（默认 false）保持。
 - 未实现（保留后续）：G3 确认卡 UI（`ctx.userQuestions` seam 已可复用但驱动器尚未接线）。
 
 ## 7e. 协调 / 节奏 / 纪律 交付状态（已实现，命令 + 提示词层）
 
-插件 v9-v28 在**预设层**（命令 + 提示词/steer，不新增 host 驱动器）迭代协调、节奏与纪律；全部与既有接力/worktree/mission 正交可独立回滚（改回旧插件 URL 即回退，G7 版本化路径）。
+插件 v9-v29 在**预设层**（命令 + 提示词/steer，不新增 host 驱动器）迭代协调、节奏与纪律；全部与既有接力/worktree/mission 正交可独立回滚（改回旧插件 URL 即回退，G7 版本化路径）。
 
 - **协调模式（v10）**：`/coordinate <会话>` 两会话**对等直连**——任一方的 assistant 回复**自动互相转发**；转发消息带 `continuity-coord` 源标记，**防循环**（转发消息不再被二次转发）；容量护栏：`coordinateAutoForward`（默认 true，可关）与 `coordinateRelayCap`（默认 20，单次事件突发最多转发条数）。`/relay <会话> <消息>` 免链接单向推送一次；`/uncoordinate` 断开（可指定或 all）。
 - **协调者 hub 模式（v11）**：`/coordinate-hub <spoke-id>…` 本会话成为对**已有会话**的星型协调者：每个 spoke 的回复**单向自动转发**到 hub（不回发）；hub 用 `/relay` 定向指挥 spoke、用 `/session-peek <会话> [n]` 只读窥视其上下文。
@@ -257,6 +257,7 @@ MVP 三条命令（`/continuity` `/handoff` `/continue`）行为不变。
 - **模式改名 Orchestra（v25）**：人类可见模式名 **Orchestra（乐团模式）**（曾用名：接力模式），对应功能范围五域：接力/轮换（乐手轮换）、worktree 并行（声部）、mission 编排（乐谱）、协调指挥（指挥/执棒）、节奏感知（节拍）。**技术命名空间全部不变**：预设 id `continuity`、24 条命令、`continuity-*` 服务/文件/源标记、checkpoint marker；仅预设显示名（`preset.yml`）、插件角色段标题、文档标题更新；历史规范文档（CREATION_MODE/DEEPSEEK_SYSTEM/CHANGELOG 等）原样保留为历史记录。
 - **协调链接持久化 + 空闲巡检（v27）**：解决"复杂任务无人值守持续工作"的两个断点——①**链接耐久**：`/coordinate` `/coordinate-hub` 把链接以 `<!-- DSH_COORD_LINKS v1 -->` 记录（`hub=<id> spokes=…` / `peers=<id>`）注入各会话日志；进程重启后插件按会话惰性恢复（restore-once），转发路径与 hub 结构自动重建；`/uncoordinate` 同步改写记录。②**空闲激活**：有 spoke 的 hub 静默超过 `hubCheckMinutes`（默认 15 分钟）且期间无任何入站消息（用户或转发）时，主动 steer 一次轻量 "Coordinator check-in"（peek 各 spoke——去重感知；有完成/卡住的用 `/relay` 调解或向用户报告；一切正常则一行回复保持安静）；忙碌 agent 绝不打断；巡检由 host timer 服务驱动（无 timer 的环境纯事件驱动，测试进程不悬挂）。效果：coordinator 从"停下等用户"升级为"停下、等用户、同时定期照看合奏"。
 - **转发标记闸门 + 恢复兜底（v28）**：新配置 `coordinateForwardMarker`（默认空 = 全量终局转发；设置如"请coordinate以下消息"后，**仅含该抬头的终局消息**自动转发）——spoke 想介入就抬头，hub 只收到值得处理的消息，其余进度靠 v27 巡检兜底：**hub 上下文零 ack 噪音、零小消息稀释**（对等直连与 hub 模式同闸门，v22 中途过滤优先级更高）；链接恢复加 `sessionQuery.readSession` 全量日志兜底（内存事件被压缩剪掉记录时仍能重建链接）。
+- **标记协议进角色段（v29）**：转发标记协议写入**角色段**（每个会话的系统提示都携带，spoke 自己就能读到）——配置 `coordinateForwardMarker` 后重启即生效，**无需重跑 `/coordinate-hub`** 转达；默认装配已启用该协议（`agent.cordis.yml` 插件 config 带 `coordinateForwardMarker: 请coordinate以下消息`，想去掉就删该行或置空）。
 - **协调者 intake + 调解（v13）**：`/coordinate-hub` 激活即向 hub 会话注入上任引导——先对各 spoke **各问一次**任务/进展/阻塞（`/relay` 发出，回复自动转发回来）→ 综合**共享图景** → **老板式调解**（像 lead 一样对每个 spoke 产出建设性/安全/创造性的共同方案，绝不单方面强推）；`/coordinate-intake` 可随时对全部 spoke 重跑状态同步问题。
 - **节奏感知（v14）**：会话活跃超 `paceCheckMinutes`（默认 30 分钟）后按 `paceCheckIntervalMin`（默认 20 分钟）间隔自动注入 "Pace check" 反思（**是否真的需要这么久** / 能否缩小范围 / 并行 / 是否升级，或 /handoff）；`/pace` 手动立即触发；纯函数 `paceDue` 导出可测；配合 mission 硬预算 `missionTimeoutMs`（§6）构成时长双护栏。
 - **纪律四则（提示词层，v9/v15/v16/v17）**：
@@ -280,7 +281,7 @@ MVP 三条命令（`/continuity` `/handoff` `/continue`）行为不变。
 - **A**：阈值/unknown 容量；建议不重复；确认前零动作；确认后全链路（终 checkpoint → 新会话 → 注入先于唤醒 → 只做 next action）；新会话创建失败回滚；非 Git workspace；重启后状态从日志重推；旧会话存活不被关。
 - **B**：worktree 创建/注册/归档全周期；审批流（拒绝=不建）；worker report 双向通道实测；worker 轮换 = successor 继承 checkpoint；并发上限与追问上限；merge 永不自动。
 - **C**：小型真实目标端到端（≥2 worktree 并行）；阻塞升级路径；进程重启后 mission 从 durable 恢复；预算护栏生效；最终验收"每个 worker 至少经历一次上下文轮换仍完成任务"。
-- 回归：MVP 31 项单元测试（V3 历史基线）；当前 147 项全绿（unit 72 + rotation 20 + worktree 32 + mission 23，见 §7d/§7e）；`/handoff` `/continue` 行为不变。
+- 回归：MVP 31 项单元测试（V3 历史基线）；当前 148 项全绿（unit 73 + rotation 20 + worktree 32 + mission 23，见 §7d/§7e）；`/handoff` `/continue` 行为不变。
 
 ---
 

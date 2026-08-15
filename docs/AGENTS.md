@@ -27,10 +27,10 @@ Loader 按 URL 缓存模块、进程内永不过期（G7）。因此：
 ## 4. 测试门禁（每个改动）
 
 ```powershell
-node tests\continuity-unit-tests.mjs       # 72
+node tests\continuity-unit-tests.mjs       # 73
 node tests\continuity-rotation-tests.mjs   # 20
 node tests\continuity-worktree-tests.mjs   # 32
-node tests\continuity-mission-tests.mjs    # 23   —— 合计 147，必须全绿
+node tests\continuity-mission-tests.mjs    # 23   —— 合计 148，必须全绿
 node C:\Users\wangy\Documents\GitHub\deepseek-harness\apps\cli\lib\bin.js --profile web --dump-config
 node C:\Users\wangy\Documents\GitHub\deepseek-harness\apps\cli\lib\bin.js --profile continuity-smoke
 node tests\validate-mermaid.mjs   # 所有 ```mermaid 图必须解析通过

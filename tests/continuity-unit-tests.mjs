@@ -1,6 +1,6 @@
 /**
  * Focused unit tests for the continuity preset companion plugin
- * (C:\Users\wangy\.dsh\.agent-presets\continuity\continuity-plugin.v28.mjs).
+ * (C:\Users\wangy\.dsh\.agent-presets\continuity\continuity-plugin.v29.mjs).
  *
  * Run with: node continuity-unit-tests.mjs
  * Exit code 0 = all tests passed.
@@ -31,8 +31,8 @@ import {
   parseLinkRecord,
   hubCheckDue,
   hubCheckPrompt,
-} from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v28.mjs'
-import continuityPlugin from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v28.mjs'
+} from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v29.mjs'
+import continuityPlugin from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v29.mjs'
 
 let passed = 0
 let failed = 0
@@ -1381,6 +1381,38 @@ test('wiring: worktree commands delegate to the host service and register the ro
   const missing = await defs2.find((d) => d.name === 'workers').handler({ agent, rawInput: '', commandId: 'c17', signal: undefined })
   assert.equal(missing.kind, 'error')
   assert.match(missing.text, /not installed/)
+})
+
+test('wiring: roles section carries the forward-marker protocol when configured (v29)', async () => {
+  const sections = []
+  const commands = { register() { return () => {} } }
+  const systemPrompt = { section(entry) { sections.push(entry); return () => {} } }
+  const ctx = {
+    get(name) {
+      if (name === 'commands') return commands
+      if (name === 'systemPrompt') return systemPrompt
+      return undefined
+    },
+    on() {}, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx, { coordinateForwardMarker: '请coordinate以下消息' })
+  assert.equal(sections.length, 1)
+  assert.match(sections[0].text, /forward marker protocol/)
+  assert.match(sections[0].text, /请coordinate以下消息/)
+  // without the marker configured the line is absent
+  const sections2 = []
+  const systemPrompt2 = { section(entry) { sections2.push(entry); return () => {} } }
+  const ctx2 = {
+    get(name) {
+      if (name === 'commands') return commands
+      if (name === 'systemPrompt') return systemPrompt2
+      return undefined
+    },
+    on() {}, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx2, {})
+  assert.equal(sections2.length, 1)
+  assert.doesNotMatch(sections2[0].text, /forward marker protocol/)
 })
 
 test('wiring: /rotate delegates to the host rotation service and reports its absence', async () => {
