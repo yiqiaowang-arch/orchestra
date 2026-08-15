@@ -1,4 +1,4 @@
-# ARCHITECTURE.md — 接力模式架构
+# ARCHITECTURE.md — Orchestra（乐团模式）架构
 
 > 目标读者：想理解或修改本项目的开发者。
 > 所有结论均来自实测（源码级验证 + 真实会话冒烟），非推断。

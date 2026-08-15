@@ -1,6 +1,6 @@
 /**
  * Unit tests for the host-side continuity-rotation driver
- * (C:\Users\wangy\.dsh\continuity-host\continuity-rotation.v4.mjs).
+ * (C:\Users\wangy\.dsh\continuity-host\continuity-rotation.v7.mjs).
  * Run with: node continuity-rotation-tests.mjs
  */
 import { strict as assert } from 'node:assert'
@@ -11,8 +11,8 @@ import {
   freshRotationCache,
   foldRotationEvent,
   foldRotationIncremental,
-} from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-rotation.v4.mjs'
-import continuityRotation from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-rotation.v4.mjs'
+} from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-rotation.v7.mjs'
+import continuityRotation from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-rotation.v7.mjs'
 
 let passed = 0
 let failed = 0
@@ -270,6 +270,21 @@ test('rotate: repeated /rotate with no new work is idempotent (no duplicate sess
   assert.equal(created.length, 1) // no second continuation session
 })
 
+test('rotate: successor is attached to the source workspace (v7)', async () => {
+  const attached = []
+  const workspaceRegistry = {
+    resolveByPath: async (path) => ({ path, attachSession: async (sid) => { attached.push(sid) } }),
+  }
+  const { ctx, provided, created } = rotateCtx({ workspaceRegistry })
+  continuityRotation(ctx, {})
+  const agent = { id: 'root-1', session: rootSession(), ctx: {} }
+  const result = await provided[SERVICE].rotate(agent, undefined)
+  assert.equal(result.kind, 'success', result.text)
+  assert.equal(created.length, 1)
+  assert.equal(attached.length, 1)
+  assert.equal(attached[0], created[0], 'the successor session is attached to the workspace')
+})
+
 test('rotate: timeout path aborts cleanly and leaves the old session unchanged', async () => {
   const timer = { timeout: () => Promise.resolve() }
   const commands = { execute: async () => {} }
@@ -297,6 +312,52 @@ test('rotate: already-aborted signal aborts before creating a session', async ()
   assert.equal(result.kind, 'error', result.text)
   assert.match(result.text, /did not become durable in time \(aborted\)/)
   assert.equal(created.length, 0)
+})
+
+test('rotate: an invalid checkpoint attempt does NOT abort; a valid one settles (v6)', async () => {
+  const listeners = []
+  const created = []
+  const agents = {
+    create: async (spec) => {
+      created.push(spec.sessionId)
+      return { agent: { session: { append() {} }, inject() {}, followup() {} } }
+    },
+  }
+  const commands = { execute: async () => {} }
+  const timer = { timeout: () => new Promise(() => {}) } // never resolves: waiter stays pending until a valid checkpoint
+  const provided = {}
+  const ctx = {
+    get(name) {
+      if (name === 'agents') return agents
+      if (name === 'commands') return commands
+      if (name === 'timer') return timer
+      return undefined
+    },
+    on(event, listener) { listeners.push([event, listener]) },
+    provide(name, value) { provided[name] = value },
+  }
+  continuityRotation(ctx, {})
+  const session = { id: 'root-1', header: { cwd: 'C:\\work\\repo' }, events: [headerEvent(1, { provider: 'p', model: 'm' })] }
+  const agent = { id: 'root-1', session, ctx: {} }
+  const pending = provided[SERVICE].rotate(agent, undefined)
+  const onEvent = listeners.find(([e]) => e === 'session/event')[1]
+  // 1. an invalid marker-bearing attempt must NOT settle the waiter
+  onEvent(session, {
+    type: 'assistant/message', seq: 100,
+    data: { message: { content: [{ type: 'text', text: '<!-- DSH_CONTINUITY_CHECKPOINT v1 -->\n# broken\nmissing sections' }] } },
+  })
+  let settled = false
+  pending.then(() => { settled = true })
+  await new Promise((r) => setTimeout(r, 15))
+  assert.equal(settled, false, 'invalid checkpoint attempt must not abort the rollover')
+  // 2. a valid checkpoint settles it and the successor is created
+  onEvent(session, {
+    type: 'assistant/message', seq: 101,
+    data: { message: { content: [{ type: 'text', text: validCheckpoint() }] } },
+  })
+  const result = await pending
+  assert.equal(result.kind, 'success', result.text)
+  assert.equal(created.length, 1)
 })
 
 test('rotate: partial success (new session created, wake failed) is reported honestly', async () => {

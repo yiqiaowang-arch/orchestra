@@ -1,6 +1,6 @@
 /**
  * Unit tests for the host-side continuity-mission driver
- * (C:\Users\wangy\.dsh\continuity-host\continuity-mission.v2.mjs).
+ * (C:\Users\wangy\.dsh\continuity-host\continuity-mission.v6.mjs).
  * Run with: node continuity-mission-tests.mjs
  */
 import { strict as assert } from 'node:assert'
@@ -14,9 +14,10 @@ import {
   scanWorkerEvents,
   findMissionCheckpoint,
   missionGoalFromCheckpoint,
-} from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-mission.v2.mjs'
-import continuityMission from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-mission.v2.mjs'
-import { MISSION_MARKER } from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-worktree.v2.mjs'
+  missionSummary,
+} from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-mission.v6.mjs'
+import continuityMission from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-mission.v6.mjs'
+import { MISSION_MARKER } from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-shared.v1.mjs'
 
 let passed = 0
 let failed = 0
@@ -138,6 +139,46 @@ test('start rejects when the goal is whitespace and reports status when idle', a
   const status = provided[SERVICE].status(agent)
   assert.match(status.text, /phase: idle/)
   assert.match(status.text, /no mission yet/)
+  // v5 regression: an idle mission must not print a bogus epoch-scale elapsed.
+  assert.doesNotMatch(status.text, /elapsed \d+s/)
+})
+
+test('status: elapsed appears only after a mission actually starts (v5)', async () => {
+  const provided = {}
+  // Fake never-resolving timer: keeps the armed plan waiter pending without a
+  // real setTimeout handle that would keep the node process alive.
+  const ctx = {
+    get(name) { return name === 'timer' ? { timeout() { return new Promise(() => {}) } } : undefined },
+    on() {},
+    provide(name, value) { provided[name] = value },
+  }
+  continuityMission(ctx, {})
+  const agent = { id: 'c3', session: { id: 'c3', header: {}, events: [] }, steer() {} }
+  const idleText = provided[SERVICE].status(agent).text
+  assert.doesNotMatch(idleText, /elapsed \d+s/, 'idle must not show elapsed')
+  const started = await provided[SERVICE].start(agent, 'rebuild the api')
+  assert.equal(started.kind, 'success')
+  const runningText = provided[SERVICE].status(agent).text
+  assert.match(runningText, /phase: planning/)
+  assert.match(runningText, /elapsed \d+s/)
+})
+
+test('missionSummary: plain-language progress for every phase', () => {
+  const idle = missionSummary({ phase: 'idle', tasks: [], results: [], error: null }, undefined)
+  assert.match(idle, /还没有 mission/)
+  const planning = missionSummary({ phase: 'planning', tasks: [], results: [], error: null }, '3s')
+  assert.match(planning, /正在拆解目标/)
+  assert.match(planning, /3s/)
+  const dispatching = missionSummary({ phase: 'dispatching', tasks: [{}, {}], results: [{ verdict: { decision: 'approve' } }], error: null }, undefined)
+  assert.match(dispatching, /已派 2 个任务/)
+  assert.match(dispatching, /1\/2 已定/)
+  const closing = missionSummary({ phase: 'closing', tasks: [{}, {}], results: [{ verdict: { decision: 'approve' } }], error: null }, undefined)
+  assert.match(closing, /正在写最终 checkpoint/)
+  const done = missionSummary({ phase: 'done', tasks: [{}, {}], results: [{ verdict: { decision: 'approve' } }], error: null }, undefined)
+  assert.match(done, /全部完成/)
+  const failed = missionSummary({ phase: 'failed', tasks: [], results: [], error: 'plan step failed' }, undefined)
+  assert.match(failed, /卡住了/)
+  assert.match(failed, /plan step failed/)
 })
 
 // ── new P0/P2 coverage ────────────────────────────────────────────────────────

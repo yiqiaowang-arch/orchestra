@@ -1,4 +1,4 @@
-# COMMANDS.md — 接力模式命令全集
+# COMMANDS.md — Orchestra（乐团模式）命令全集
 
 > 当前版本：预设插件 v5 / rotation v4 / worktree v3 / mission v2。
 > 12 条专属命令 + 6 条继承自标准模式。

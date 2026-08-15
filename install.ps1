@@ -1,6 +1,6 @@
 # install.ps1 — 安装：deploy/ 镜像 → 本机 DeepSeek Harness 实际运行位置。
 #
-# 目标读者：克隆本仓库、想在自家 Harness 上使用接力模式的人。
+# 目标读者：克隆本仓库、想在自家 Harness 上使用 Orchestra（乐团模式，曾用名：接力模式）的人。
 # 安全设计：
 #   - 版本化文件（*.vN.mjs）只会新增、绝不覆盖（文件名唯一）；
 #   - 用户的 web 补丁文件若与镜像不同 → 自动备份并打印手工合并说明，绝不强写；
@@ -37,7 +37,7 @@ function Install-IfChanged($srcFile, $dstFile, $label) {
 }
 
 Write-Output ''
-Write-Output '== 1/4 预设（接力模式）=='
+Write-Output '== 1/4 预设（Orchestra 乐团模式）=='
 Copy-AllFiles (Join-Path $deploy 'agent-presets\continuity') (Join-Path $dshHome '.agent-presets\continuity')
 
 Write-Output ''
@@ -55,7 +55,7 @@ Copy-AllFiles (Join-Path $deploy 'profiles\continuity-smoke') (Join-Path $dshHom
 Write-Output ''
 Write-Output '安装完成。下一步：'
 Write-Output '  1. 刷新 GUI（补丁层热应用，几秒内生效）；'
-Write-Output '  2. 任意 workspace 新建会话，预设选择器选「接力模式」；'
+Write-Output '  2. 任意 workspace 新建会话，预设选择器选「Orchestra（乐团模式）」；'
 Write-Output '  3. 跑 /continuity —— 应看到 tokens/容量/比率 与 worker visibility 行。'
 Write-Output ''
 Write-Output '注意：已存在的会话仍使用旧代次（standing mount 按代次），新会话自动用最新版。'

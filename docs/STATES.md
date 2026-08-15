@@ -1,6 +1,6 @@
 # STATES.md — 状态模型速查（三种环）
 
-> 接力模式的全部行为 = **三种状态环**的组合。任何会话至少跑 ①；worker 叠加 ②；coordinator 叠加 ③。
+> Orchestra（乐团模式）的全部行为 = **三种状态环**的组合。任何会话至少跑 ①；worker 叠加 ②；coordinator 叠加 ③。
 > 环与环之间只有两个固定接点：`/rotate` 把 ① 环接到新会话；mission 派发把 ③ 环接到 ② 环。
 
 ```mermaid

@@ -1,6 +1,6 @@
 /**
  * Focused unit tests for the continuity preset companion plugin
- * (C:\Users\wangy\.dsh\.agent-presets\continuity\continuity-plugin.v5.mjs).
+ * (C:\Users\wangy\.dsh\.agent-presets\continuity\continuity-plugin.v25.mjs).
  *
  * Run with: node continuity-unit-tests.mjs
  * Exit code 0 = all tests passed.
@@ -25,8 +25,10 @@ import {
   freshCache,
   foldEvent,
   foldIncremental,
-} from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v5.mjs'
-import continuityPlugin from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v5.mjs'
+  paceDue,
+  paceCheckPrompt,
+} from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v25.mjs'
+import continuityPlugin from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v25.mjs'
 
 let passed = 0
 let failed = 0
@@ -329,9 +331,9 @@ test('wiring: commands registered, listeners attached, effects reversible', () =
   }
   continuityPlugin(ctx, {})
   assert.deepEqual(defs.map((d) => d.name).sort(),
-    ['continue', 'continuity', 'handoff', 'mission', 'rotate', 'worker-report', 'worker-send', 'worker-stop', 'worker-successor', 'workers', 'worktree', 'worktree-cleanup'])
+    ['continue', 'continuity', 'coordinate', 'coordinate-hub', 'coordinate-intake', 'current_session', 'handoff', 'mission', 'mission_status', 'pace', 'relay', 'rotate', 'session-peek', 'sessions', 'sessions_active', 'steer', 'uncoordinate', 'worker-report', 'worker-send', 'worker-stop', 'worker-successor', 'workers', 'worktree', 'worktree-cleanup'])
   const events = listeners.map(([event]) => event).sort()
-  assert.deepEqual(events, ['agent/status', 'agent/turn-stopping', 'session/event'])
+  assert.deepEqual(events, ['agent/status', 'agent/turn-stopping', 'session/event', 'session/event'])
   // unload: every registration is removed through its disposer
   for (const dispose of disposers) dispose()
   assert.equal(defs.length, 0)
@@ -367,6 +369,706 @@ test('wiring: /mission delegates start/status to the host mission service', asyn
   assert.deepEqual(calls, [['start', 'build the thing'], ['status']])
 })
 
+test('wiring: /mission_status delegates to the host mission service (space-free alias)', async () => {
+  const defs = []
+  const commands = { register(def) { defs.push(def); return () => {} } }
+  const calls = []
+  const mission = {
+    async start() { return { kind: 'success', text: 'started' } },
+    status(agent) { calls.push(['status']); return { kind: 'success', text: 'phase: idle' } },
+  }
+  const session = sessionWith([])
+  const agent = { id: session.id, status: 'idle', session, options: {}, inject() {}, followup() {} }
+  const ctx = {
+    get(name) {
+      if (name === 'commands') return commands
+      if (name === 'continuityMission') return mission
+      return undefined
+    },
+    on() {}, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx, {})
+  const cmd = defs.find((d) => d.name === 'mission_status')
+  assert.ok(cmd, 'mission_status command registered')
+  const status = await cmd.handler({ agent, rawInput: '', commandId: 'c40', signal: undefined })
+  assert.equal(status.kind, 'success')
+  assert.deepEqual(calls, [['status']])
+  // driver absent → honest error
+  const defs2 = []
+  const commands2 = { register(def) { defs2.push(def); return () => {} } }
+  const ctx3 = { get(name) { return name === 'commands' ? commands2 : undefined }, on() {}, effect(fn) { fn() } }
+  continuityPlugin(ctx3, {})
+  const missing = await defs2.find((d) => d.name === 'mission_status').handler({ agent, rawInput: '', commandId: 'c41', signal: undefined })
+  assert.equal(missing.kind, 'error')
+  assert.match(missing.text, /unavailable/)
+})
+
+test('coordination: /coordinate links two sessions and /uncoordinate breaks the link (v10)', async () => {
+  const defs = []
+  const commands = { register(def) { defs.push(def); return () => {} } }
+  const sessions = {
+    's-front': { id: 's-front', session: { id: 's-front', events: [] }, followup() {} },
+    's-back': { id: 's-back', session: { id: 's-back', events: [] }, followup() {} },
+  }
+  const agents = { get(id) { return sessions[id] } }
+  const ctx = {
+    get(name) { if (name === 'commands') return commands; if (name === 'agents') return agents; return undefined },
+    on() {}, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx, {})
+  const byName = (n) => defs.find((d) => d.name === n)
+  const coord = byName('coordinate')
+  assert.ok(coord, 'coordinate command registered')
+  const front = sessions['s-front']
+  const linked = await coord.handler({ agent: front, rawInput: 's-back', commandId: 'c50', signal: undefined })
+  assert.equal(linked.kind, 'success', linked.text)
+  assert.match(linked.text, /Linked/)
+  const status = await coord.handler({ agent: front, rawInput: 'status', commandId: 'c51', signal: undefined })
+  assert.equal(status.kind, 'success')
+  assert.match(status.text, /s-back/)
+  const self = await coord.handler({ agent: front, rawInput: 's-front', commandId: 'c52', signal: undefined })
+  assert.equal(self.kind, 'error')
+  const missingTarget = await coord.handler({ agent: front, rawInput: 'nope', commandId: 'c53', signal: undefined })
+  assert.equal(missingTarget.kind, 'error')
+  const un = byName('uncoordinate')
+  const broke = await un.handler({ agent: front, rawInput: 's-back', commandId: 'c54', signal: undefined })
+  assert.equal(broke.kind, 'success')
+  const statusAfter = await coord.handler({ agent: front, rawInput: 'status', commandId: 'c55', signal: undefined })
+  assert.match(statusAfter.text, /No coordination links/)
+})
+
+test('coordination: /relay pushes a one-shot message into the target session (v10)', async () => {
+  const defs = []
+  const commands = { register(def) { defs.push(def); return () => {} } }
+  const received = []
+  const target = { id: 's-back', session: { id: 's-back', events: [] }, followup(msg) { received.push(msg) } }
+  const agents = { get(id) { return id === 's-back' ? target : undefined } }
+  const ctx = {
+    get(name) { if (name === 'commands') return commands; if (name === 'agents') return agents; return undefined },
+    on() {}, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx, {})
+  const agent = { id: 's-front', session: { id: 's-front', events: [] }, followup() {} }
+  const cmd = defs.find((d) => d.name === 'relay')
+  const ok = await cmd.handler({ agent, rawInput: 's-back 帮我跑一下后端测试', commandId: 'c56', signal: undefined })
+  assert.equal(ok.kind, 'success', ok.text)
+  assert.equal(received.length, 1)
+  const text = received[0].content[0].text
+  assert.match(text, /帮我跑一下后端测试/)
+  assert.equal(received[0].source.kind, 'continuity-coord')
+  const missing = await cmd.handler({ agent, rawInput: 'nope hi', commandId: 'c57', signal: undefined })
+  assert.equal(missing.kind, 'error')
+  const usage = await cmd.handler({ agent, rawInput: 's-back', commandId: 'c58', signal: undefined })
+  assert.equal(usage.kind, 'error')
+})
+
+test('coordination: auto-forward relays linked replies, loop-protected by the source tag (v10)', async () => {
+  const defs = []
+  const commands = { register(def) { defs.push(def); return () => {} } }
+  const listeners = []
+  const received = []
+  const sessions = {
+    's-front': { id: 's-front', session: { id: 's-front', events: [] }, followup(msg) { if (msg.source && msg.source.kind === 'continuity-coord') received.push({ to: 's-front', text: msg.content[0].text }) } },
+    's-back': { id: 's-back', session: { id: 's-back', events: [] }, followup(msg) { if (msg.source && msg.source.kind === 'continuity-coord') received.push({ to: 's-back', text: msg.content[0].text }) } },
+  }
+  const agents = { get(id) { return sessions[id] } }
+  const ctx = {
+    get(name) { if (name === 'commands') return commands; if (name === 'agents') return agents; return undefined },
+    on(event, listener) { listeners.push([event, listener]) }, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx, {})
+  // link via the command
+  const coord = defs.find((d) => d.name === 'coordinate')
+  await coord.handler({ agent: sessions['s-front'], rawInput: 's-back', commandId: 'c60', signal: undefined })
+  const evListeners = listeners.filter(([e]) => e === 'session/event').map(([, l]) => l)
+  // original reply from s-front → forwarded to s-back
+  for (const l of evListeners) l(sessions['s-front'].session, {
+    type: 'assistant/message', seq: 1,
+    data: { message: { content: [{ type: 'text', text: '前端搞定了接口' }] } },
+  })
+  await new Promise((r) => setTimeout(r, 10))
+  assert.equal(received.length, 1, JSON.stringify(received))
+  assert.equal(received[0].to, 's-back')
+  assert.match(received[0].text, /前端搞定了接口/)
+  // a message that IS a relay (source continuity-coord) must not be re-forwarded
+  received.length = 0
+  for (const l of evListeners) l(sessions['s-back'].session, {
+    type: 'assistant/message', seq: 2,
+    data: { message: { content: [{ type: 'text', text: '已转发内容' }], source: { kind: 'continuity-coord', version: 1 } } },
+  })
+  await new Promise((r) => setTimeout(r, 10))
+  assert.equal(received.length, 0, 'relayed message must not be re-forwarded')
+})
+
+test('coordination: auto-forward relays FINAL replies only, never intermediate tool-call steps (v22)', async () => {
+  const defs = []
+  const commands = { register(def) { defs.push(def); return () => {} } }
+  const listeners = []
+  const received = []
+  const sessions = {
+    's-front': { id: 's-front', session: { id: 's-front', events: [] }, followup(msg) { if (msg.source && msg.source.kind === 'continuity-coord') received.push({ to: 's-front', text: msg.content[0].text }) } },
+    's-back': { id: 's-back', session: { id: 's-back', events: [] }, followup(msg) { if (msg.source && msg.source.kind === 'continuity-coord') received.push({ to: 's-back', text: msg.content[0].text }) } },
+  }
+  const agents = { get(id) { return sessions[id] } }
+  const ctx = {
+    get(name) { if (name === 'commands') return commands; if (name === 'agents') return agents; return undefined },
+    on(event, listener) { listeners.push([event, listener]) }, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx, {})
+  const coord = defs.find((d) => d.name === 'coordinate')
+  await coord.handler({ agent: sessions['s-front'], rawInput: 's-back', commandId: 'c88', signal: undefined })
+  const evListeners = listeners.filter(([e]) => e === 'session/event').map(([, l]) => l)
+  // intermediate step 1: lead-in text BEFORE a tool call — must NOT be forwarded
+  for (const l of evListeners) l(sessions['s-front'].session, {
+    type: 'assistant/message', seq: 1,
+    data: { message: { content: [{ type: 'text', text: '我先查一下接口文档' }, { type: 'tool_use', name: 'pwsh', input: {} }] } },
+  })
+  await new Promise((r) => setTimeout(r, 10))
+  assert.equal(received.length, 0, 'lead-in text before a tool call must not be forwarded')
+  // intermediate step 2: progress text BETWEEN tool calls — must NOT be forwarded
+  for (const l of evListeners) l(sessions['s-front'].session, {
+    type: 'assistant/message', seq: 2,
+    data: { message: { content: [{ type: 'text', text: '结果出来了，继续看第二处' }, { type: 'tool_use', name: 'glob', input: {} }] } },
+  })
+  await new Promise((r) => setTimeout(r, 10))
+  assert.equal(received.length, 0, 'progress text between tool calls must not be forwarded')
+  // final reply of the turn (no pending tool call) — forwarded once
+  for (const l of evListeners) l(sessions['s-front'].session, {
+    type: 'assistant/message', seq: 3,
+    data: { message: { content: [{ type: 'text', text: '查完了：接口契约没问题' }] } },
+  })
+  await new Promise((r) => setTimeout(r, 10))
+  assert.equal(received.length, 1, JSON.stringify(received))
+  assert.equal(received[0].to, 's-back')
+  assert.match(received[0].text, /查完了：接口契约没问题/)
+})
+
+test('coordination: peek skips messages already auto-forwarded to the hub; --full forces re-read (v23)', async () => {
+  const defs = []
+  const commands = { register(def) { defs.push(def); return () => {} } }
+  const listeners = []
+  const received = []
+  const hub = { id: 's-hub', session: { id: 's-hub', events: [] }, followup(msg) { if (msg.source && msg.source.kind === 'continuity-coord') received.push({ to: 's-hub', text: msg.content[0].text }) }, steer() {} }
+  const spoke = { id: 's-front', session: { id: 's-front', events: [] }, followup() {} }
+  const sessions = { 's-hub': hub, 's-front': spoke }
+  const agents = { get(id) { return sessions[id] } }
+  const sessionQuery = {
+    readSurface: async () => ({
+      session: { cwd: 'C:\\work' },
+      events: [
+        { type: 'user/message', seq: 1, data: { message: { content: [{ type: 'text', text: '任务：重构接口' }] } } },
+        { type: 'assistant/message', seq: 2, data: { message: { content: [{ type: 'text', text: '我先看看' }, { type: 'tool_use', name: 'pwsh', input: {} }] } } },
+        { type: 'assistant/message', seq: 3, data: { message: { content: [{ type: 'text', text: '重构完成' }] } } },
+        { type: 'assistant/message', seq: 4, data: { message: { content: [{ type: 'text', text: '补充：测试也过了' }] } } },
+      ],
+    }),
+  }
+  const ctx = {
+    get(name) {
+      if (name === 'commands') return commands
+      if (name === 'agents') return agents
+      if (name === 'sessionQuery') return sessionQuery
+      return undefined
+    },
+    on(event, listener) { listeners.push([event, listener]) }, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx, {})
+  const hubCmd = defs.find((d) => d.name === 'coordinate-hub')
+  await hubCmd.handler({ agent: hub, rawInput: 's-front', commandId: 'c89', signal: undefined })
+  const evListeners = listeners.filter(([e]) => e === 'session/event').map(([, l]) => l)
+  // seq 3 and seq 4 are final replies → auto-forwarded to the hub (and recorded)
+  for (const l of evListeners) l(spoke.session, { type: 'assistant/message', seq: 3, data: { message: { content: [{ type: 'text', text: '重构完成' }] } } })
+  for (const l of evListeners) l(spoke.session, { type: 'assistant/message', seq: 4, data: { message: { content: [{ type: 'text', text: '补充：测试也过了' }] } } })
+  await new Promise((r) => setTimeout(r, 10))
+  assert.equal(received.length, 2, JSON.stringify(received))
+  // peek by the hub: seq 3/4 skipped (already forwarded), seq 1/2 shown
+  const peek = defs.find((d) => d.name === 'session-peek')
+  const out = await peek.handler({ agent: hub, rawInput: 's-front 10', commandId: 'c90', signal: undefined })
+  assert.equal(out.kind, 'success', out.text)
+  assert.match(out.text, /任务：重构接口/)
+  assert.match(out.text, /我先看看/)
+  assert.doesNotMatch(out.text, /重构完成/)
+  assert.doesNotMatch(out.text, /补充：测试也过了/)
+  assert.match(out.text, /already auto-forwarded were skipped/)
+  // --full forces a re-read of everything
+  const outFull = await peek.handler({ agent: hub, rawInput: 's-front 10 --full', commandId: 'c91', signal: undefined })
+  assert.equal(outFull.kind, 'success', outFull.text)
+  assert.match(outFull.text, /重构完成/)
+  assert.match(outFull.text, /补充：测试也过了/)
+  assert.doesNotMatch(outFull.text, /already auto-forwarded were skipped/)
+  // a NON-linked session peeking s-front sees everything (no dedupe applies)
+  const outsider = { id: 's-out', session: { id: 's-out', events: [] }, followup() {} }
+  const out2 = await peek.handler({ agent: outsider, rawInput: 's-front 10', commandId: 'c92', signal: undefined })
+  assert.equal(out2.kind, 'success', out2.text)
+  assert.match(out2.text, /重构完成/)
+})
+
+test('coordination: /steer pushes a marked IMPORTANT message, refuses busy targets (v24)', async () => {
+  const defs = []
+  const commands = { register(def) { defs.push(def); return () => {} } }
+  const received = []
+  const coord = { id: 's-hub', session: { id: 's-hub', events: [] }, status: 'idle', followup() {} }
+  const main = { id: 's-main', session: { id: 's-main', events: [] }, status: 'idle', followup(msg) { if (msg.source && msg.source.kind === 'continuity-steer') received.push({ to: 's-main', text: msg.content[0].text }) } }
+  const busy = { id: 's-busy', session: { id: 's-busy', events: [] }, status: 'running', followup(msg) { if (msg.source && msg.source.kind === 'continuity-steer') received.push({ to: 's-busy', text: msg.content[0].text }) } }
+  const sessions = { 's-hub': coord, 's-main': main, 's-busy': busy }
+  const agents = { get(id) { return sessions[id] } }
+  const ctx = {
+    get(name) { if (name === 'commands') return commands; if (name === 'agents') return agents; return undefined },
+    on() {}, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx, {})
+  const cmd = defs.find((d) => d.name === 'steer')
+  assert.ok(cmd, 'steer command registered')
+  // idle target → steered with an important mark
+  const out = await cmd.handler({ agent: coord, rawInput: 's-main 后端接口契约已冻结，请知悉', commandId: 'c93', signal: undefined })
+  assert.equal(out.kind, 'success', out.text)
+  assert.equal(received.length, 1, JSON.stringify(received))
+  assert.match(received[0].text, /【重要/)
+  assert.match(received[0].text, /s-hub/)
+  assert.match(received[0].text, /后端接口契约已冻结，请知悉/)
+  // busy target → refused without --force (steering would break its thinking chain)
+  const refused = await cmd.handler({ agent: coord, rawInput: 's-busy 紧急', commandId: 'c94', signal: undefined })
+  assert.equal(refused.kind, 'error')
+  assert.match(refused.text, /mid-turn/)
+  assert.equal(received.length, 1, 'busy target must not receive the steer')
+  // --force bypasses on a genuine emergency
+  const forced = await cmd.handler({ agent: coord, rawInput: 's-busy 紧急：服务宕了 --force', commandId: 'c95', signal: undefined })
+  assert.equal(forced.kind, 'success', forced.text)
+  assert.equal(received.length, 2, JSON.stringify(received))
+  assert.match(received[1].text, /服务宕了/)
+  // self-target and unknown target rejected; usage required
+  const self = await cmd.handler({ agent: coord, rawInput: 's-hub 不要', commandId: 'c96', signal: undefined })
+  assert.equal(self.kind, 'error')
+  assert.match(self.text, /own session/)
+  const ghost = await cmd.handler({ agent: coord, rawInput: 's-ghost 你好', commandId: 'c97', signal: undefined })
+  assert.equal(ghost.kind, 'error')
+  assert.match(ghost.text, /not found/)
+  const usage = await cmd.handler({ agent: coord, rawInput: '', commandId: 'c98', signal: undefined })
+  assert.equal(usage.kind, 'error')
+  assert.match(usage.text, /Usage/)
+})
+
+test('coordination-hub: hub coordinates EXISTING sessions — spokes forward to hub, hub replies do not broadcast (v11)', async () => {
+  const defs = []
+  const commands = { register(def) { defs.push(def); return () => {} } }
+  const listeners = []
+  const received = []
+  const sessions = {
+    's-hub': { id: 's-hub', session: { id: 's-hub', events: [] }, followup(msg) { if (msg.source && msg.source.kind === 'continuity-coord') received.push({ to: 's-hub', text: msg.content[0].text }) } },
+    's-front': { id: 's-front', session: { id: 's-front', events: [] }, followup(msg) { if (msg.source && msg.source.kind === 'continuity-coord') received.push({ to: 's-front', text: msg.content[0].text }) } },
+    's-back': { id: 's-back', session: { id: 's-back', events: [] }, followup(msg) { if (msg.source && msg.source.kind === 'continuity-coord') received.push({ to: 's-back', text: msg.content[0].text }) } },
+  }
+  const agents = { get(id) { return sessions[id] } }
+  const ctx = {
+    get(name) { if (name === 'commands') return commands; if (name === 'agents') return agents; return undefined },
+    on(event, listener) { listeners.push([event, listener]) }, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx, {})
+  const hubCmd = defs.find((d) => d.name === 'coordinate-hub')
+  assert.ok(hubCmd, 'coordinate-hub command registered')
+  const hub = sessions['s-hub']
+  const result = await hubCmd.handler({ agent: hub, rawInput: 's-front s-back', commandId: 'c70', signal: undefined })
+  assert.equal(result.kind, 'success', result.text)
+  assert.match(result.text, /s-front, s-back/)
+  const evListeners = listeners.filter(([e]) => e === 'session/event').map(([, l]) => l)
+  // spoke (s-front) reply → forwarded to hub only
+  for (const l of evListeners) l(sessions['s-front'].session, {
+    type: 'assistant/message', seq: 1,
+    data: { message: { content: [{ type: 'text', text: '前端：接口写好了' }] } },
+  })
+  await new Promise((r) => setTimeout(r, 10))
+  assert.equal(received.length, 1, JSON.stringify(received))
+  assert.equal(received[0].to, 's-hub')
+  assert.match(received[0].text, /前端：接口写好了/)
+  // hub reply → NOT broadcast to spokes (hub has no peer entries for spokes)
+  received.length = 0
+  for (const l of evListeners) l(sessions['s-hub'].session, {
+    type: 'assistant/message', seq: 2,
+    data: { message: { content: [{ type: 'text', text: '协调者：很好，后端继续' }] } },
+  })
+  await new Promise((r) => setTimeout(r, 10))
+  assert.equal(received.length, 0, 'hub reply must not auto-broadcast to spokes')
+})
+
+test('session-peek: reads the latest messages of an existing session (v11)', async () => {
+  const defs = []
+  const commands = { register(def) { defs.push(def); return () => {} } }
+  const sessionQuery = {
+    readSurface: async (id) => ({
+      session: { cwd: 'C:\\work\\frontend' },
+      events: [
+        { type: 'user/message', seq: 10, data: { message: { content: [{ type: 'text', text: '帮我看下接口' }] } } },
+        { type: 'assistant/message', seq: 11, data: { message: { content: [{ type: 'text', text: '接口在 api.ts，已跑通' }] } } },
+      ],
+    }),
+  }
+  const ctx = {
+    get(name) { if (name === 'commands') return commands; if (name === 'sessionQuery') return sessionQuery; return undefined },
+    on() {}, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx, {})
+  const agent = { id: 's-hub', session: { id: 's-hub', events: [] }, followup() {} }
+  const cmd = defs.find((d) => d.name === 'session-peek')
+  assert.ok(cmd, 'session-peek command registered')
+  const peek = await cmd.handler({ agent, rawInput: 's-front 3', commandId: 'c71', signal: undefined })
+  assert.equal(peek.kind, 'success', peek.text)
+  assert.match(peek.text, /C:\\work\\frontend/)
+  assert.match(peek.text, /接口在 api.ts/)
+  const usage = await cmd.handler({ agent, rawInput: '', commandId: 'c72', signal: undefined })
+  assert.equal(usage.kind, 'error')
+  // sessionQuery absent → honest error
+  const defs2 = []
+  const commands2 = { register(def) { defs2.push(def); return () => {} } }
+  const ctx2 = { get(name) { return name === 'commands' ? commands2 : undefined }, on() {}, effect(fn) { fn() } }
+  continuityPlugin(ctx2, {})
+  const missing = await defs2.find((d) => d.name === 'session-peek').handler({ agent, rawInput: 's-front', commandId: 'c73', signal: undefined })
+  assert.equal(missing.kind, 'error')
+  assert.match(missing.text, /unavailable/)
+})
+
+test('sessions: lists every session with its id for copy (v12)', async () => {
+  const defs = []
+  const commands = { register(def) { defs.push(def); return () => {} } }
+  const sessionQuery = {
+    listSessions: async () => [
+      { header: { id: 'session-aaa', cwd: 'C:\\work\\frontend', parentSession: undefined, createdAt: 1 },
+        projection: { values: { title: '前端改造' } } },
+      { header: { id: 'session-bbb', cwd: 'C:\\work\\backend', parentSession: undefined, createdAt: 2 },
+        projection: { values: { title: '后端重构' } } },
+    ],
+  }
+  const agents = { get(id) { return id === 'session-aaa' ? { id } : undefined } }
+  const ctx = {
+    get(name) {
+      if (name === 'commands') return commands
+      if (name === 'sessionQuery') return sessionQuery
+      if (name === 'agents') return agents
+      return undefined
+    },
+    on() {}, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx, {})
+  const agent = { id: 's-hub', session: { id: 's-hub', events: [] }, followup() {} }
+  const cmd = defs.find((d) => d.name === 'sessions')
+  assert.ok(cmd, 'sessions command registered')
+  const out = await cmd.handler({ agent, rawInput: '', commandId: 'c74', signal: undefined })
+  assert.equal(out.kind, 'success', out.text)
+  assert.match(out.text, /session-aaa/)
+  assert.match(out.text, /前端改造/)
+  assert.match(out.text, /\[live\]/)
+  assert.match(out.text, /session-bbb/)
+  assert.match(out.text, /后端重构/)
+  // sessionQuery absent → honest error
+  const defs2 = []
+  const commands2 = { register(def) { defs2.push(def); return () => {} } }
+  const ctx2 = { get(name) { return name === 'commands' ? commands2 : undefined }, on() {}, effect(fn) { fn() } }
+  continuityPlugin(ctx2, {})
+  const missing = await defs2.find((d) => d.name === 'sessions').handler({ agent, rawInput: '', commandId: 'c75', signal: undefined })
+  assert.equal(missing.kind, 'error')
+  assert.match(missing.text, /unavailable/)
+})
+
+test('sessions_active: lists non-archived sessions inside workspace groups, archived and ungrouped hidden (v18)', async () => {
+  const defs = []
+  const commands = { register(def) { defs.push(def); return () => {} } }
+  const sessionQuery = {
+    listSessions: async () => [
+      { header: { id: 's-archived', cwd: 'C:\\wt\\front', parentSession: 's-coord', createdAt: 1 },
+        projection: { values: { title: '归档会话' } } },
+      { header: { id: 's-worker1', cwd: 'C:\\wt\\front', parentSession: 's-coord', createdAt: 2 },
+        projection: { values: { title: '前端改造' } } },
+      { header: { id: 's-worker2', cwd: 'C:\\wt\\front', parentSession: 's-coord', createdAt: 3 },
+        projection: { values: { title: '前端测试' } } },
+      { header: { id: 's-worker3', cwd: 'C:\\wt\\back', parentSession: 's-coord', createdAt: 4 },
+        projection: { values: { title: '后端重构' } } },
+      { header: { id: 's-loose', cwd: 'C:\\work\\elsewhere', parentSession: undefined, createdAt: 5 },
+        projection: { values: { title: '未分组' } } },
+    ],
+  }
+  const workspaceRegistry = {
+    archivedSessionIds: ['s-archived'],
+    list: () => [
+      { id: 'w-front', title: 'worktree-前端', path: 'C:\\wt\\front', sessionIds: ['s-archived', 's-worker1', 's-worker2'] },
+      { id: 'w-back', title: 'worktree-后端', path: 'C:\\wt\\back', sessionIds: ['s-worker3'] },
+    ],
+  }
+  const agents = { get(id) { return id === 's-worker1' ? { id } : undefined } }
+  const ctx = {
+    get(name) {
+      if (name === 'commands') return commands
+      if (name === 'sessionQuery') return sessionQuery
+      if (name === 'workspaceRegistry') return workspaceRegistry
+      if (name === 'agents') return agents
+      return undefined
+    },
+    on() {}, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx, {})
+  const agent = { id: 's-coord', session: { id: 's-coord', events: [] }, followup() {} }
+  const cmd = defs.find((d) => d.name === 'sessions_active')
+  assert.ok(cmd, 'sessions_active command registered')
+  const out = await cmd.handler({ agent, rawInput: '', commandId: 'c80', signal: undefined })
+  assert.equal(out.kind, 'success', out.text)
+  assert.match(out.text, /Active workgroup sessions \(3/)
+  assert.match(out.text, /\[worktree-前端\]/)
+  assert.match(out.text, /s-worker1/)
+  assert.match(out.text, /s-worker2/)
+  assert.match(out.text, /\[live\]/)
+  assert.match(out.text, /\[worktree-后端\]/)
+  assert.match(out.text, /s-worker3/)
+  // archived member and ungrouped session stay hidden
+  assert.doesNotMatch(out.text, /s-archived/)
+  assert.doesNotMatch(out.text, /归档会话/)
+  assert.doesNotMatch(out.text, /s-loose/)
+  assert.doesNotMatch(out.text, /未分组/)
+})
+
+test('sessions_active: registry absent → honest error; empty registry → honest no-op (v18)', async () => {
+  const defs = []
+  const commands = { register(def) { defs.push(def); return () => {} } }
+  const sessionQuery = { listSessions: async () => [] }
+  const ctx = {
+    get(name) {
+      if (name === 'commands') return commands
+      if (name === 'sessionQuery') return sessionQuery
+      return undefined
+    },
+    on() {}, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx, {})
+  const agent = { id: 's-coord', session: { id: 's-coord', events: [] }, followup() {} }
+  const missing = await defs.find((d) => d.name === 'sessions_active').handler({ agent, rawInput: '', commandId: 'c81', signal: undefined })
+  assert.equal(missing.kind, 'error')
+  assert.match(missing.text, /unavailable/)
+  // registry present but no groups → honest no-op success
+  const defs2 = []
+  const commands2 = { register(def) { defs2.push(def); return () => {} } }
+  const ctx2 = {
+    get(name) {
+      if (name === 'commands') return commands2
+      if (name === 'sessionQuery') return sessionQuery
+      if (name === 'workspaceRegistry') return { archivedSessionIds: [], list: () => [] }
+      return undefined
+    },
+    on() {}, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx2, {})
+  const none = await defs2.find((d) => d.name === 'sessions_active').handler({ agent, rawInput: '', commandId: 'c82', signal: undefined })
+  assert.equal(none.kind, 'success', none.text)
+  assert.match(none.text, /No active workgroup sessions/)
+})
+
+test('current_session: prints only the current session id, nothing else (v19)', async () => {
+  const defs = []
+  const commands = { register(def) { defs.push(def); return () => {} } }
+  const ctx = {
+    get(name) { if (name === 'commands') return commands; return undefined },
+    on() {}, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx, {})
+  const agent = { id: 's-me', session: { id: 's-me', events: [] }, followup() {} }
+  const cmd = defs.find((d) => d.name === 'current_session')
+  assert.ok(cmd, 'current_session command registered')
+  const out = await cmd.handler({ agent, rawInput: '', commandId: 'c83', signal: undefined })
+  assert.equal(out.kind, 'success', out.text)
+  assert.equal(out.text, 's-me') // exactly the id, no decoration
+  // session id missing → honest error
+  const broken = await cmd.handler({ agent: { session: {} }, rawInput: '', commandId: 'c84', signal: undefined })
+  assert.equal(broken.kind, 'error')
+  assert.match(broken.text, /unavailable/)
+})
+
+test('coordinate-hub: steers the coordinator onboarding into the hub session (v13)', async () => {
+  const defs = []
+  const commands = { register(def) { defs.push(def); return () => {} } }
+  const steered = []
+  const hub = { id: 's-hub', session: { id: 's-hub', events: [] }, steer(msg) { steered.push(msg) }, followup() {} }
+  const sessions = {
+    's-front': { id: 's-front', session: { id: 's-front', events: [] }, followup() {} },
+    's-back': { id: 's-back', session: { id: 's-back', events: [] }, followup() {} },
+  }
+  const agents = { get(id) { return sessions[id] || (id === 's-hub' ? hub : undefined) } }
+  const ctx = {
+    get(name) { if (name === 'commands') return commands; if (name === 'agents') return agents; return undefined },
+    on() {}, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx, {})
+  const cmd = defs.find((d) => d.name === 'coordinate-hub')
+  const result = await cmd.handler({ agent: hub, rawInput: 's-front s-back', commandId: 'c76', signal: undefined })
+  assert.equal(result.kind, 'success', result.text)
+  assert.equal(steered.length, 1, 'onboarding must be steered into the hub session')
+  const prompt = steered[0].content ? steered[0].content.map((c) => c.text).join(' ') : String(steered[0])
+  assert.match(prompt, /Coordination hub onboarding/)
+  assert.match(prompt, /\/coordinate-intake ONCE/)
+  assert.match(prompt, /s-front, s-back/)
+  // v15: delegate-first, decline content work, role persistence
+  assert.match(prompt, /DELEGATION FIRST/)
+  assert.match(prompt, /DECLINE politely/)
+  assert.match(prompt, /ROLE PERSISTENCE/)
+  assert.match(prompt, /\/coordinate-hub <ids>/)
+  // v16: one delegation mechanism per task
+  assert.match(prompt, /ONE DELEGATION MECHANISM PER TASK/)
+  assert.match(prompt, /\/worker-send/)
+  // v17: how to delegate — subagent = context isolation without a clean workspace
+  assert.match(prompt, /HOW TO DELEGATE/)
+  assert.match(prompt, /CLEAN, isolated workspace/)
+  assert.match(prompt, /POLLUTE this conversation context/)
+  assert.match(prompt, /keeps the coordinator context clean/)
+})
+
+test('coordinate-hub: onboarding is bounded — sibling sessions, stop-and-wait for the user (v20)', async () => {
+  const defs = []
+  const commands = { register(def) { defs.push(def); return () => {} } }
+  const steered = []
+  const hub = { id: 's-hub', session: { id: 's-hub', events: [] }, steer(msg) { steered.push(msg) }, followup() {} }
+  const sessions = {
+    's-front': { id: 's-front', session: { id: 's-front', events: [] }, followup() {} },
+    's-back': { id: 's-back', session: { id: 's-back', events: [] }, followup() {} },
+  }
+  const agents = { get(id) { return sessions[id] || (id === 's-hub' ? hub : undefined) } }
+  const ctx = {
+    get(name) { if (name === 'commands') return commands; if (name === 'agents') return agents; return undefined },
+    on() {}, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx, {})
+  const cmd = defs.find((d) => d.name === 'coordinate-hub')
+  const result = await cmd.handler({ agent: hub, rawInput: 's-front s-back', commandId: 'c85', signal: undefined })
+  assert.equal(result.kind, 'success', result.text)
+  assert.equal(steered.length, 1)
+  const prompt = steered[0].content ? steered[0].content.map((c) => c.text).join(' ') : String(steered[0])
+  // v20: spokes are sibling sessions — inspect with /session-peek, never the subagent registry or filesystem hunting
+  assert.match(prompt, /SIBLING SESSIONS, NOT SUBAGENTS/)
+  assert.match(prompt, /\/session-peek <spoke-id>/)
+  assert.match(prompt, /list_agents tool/)
+  assert.match(prompt, /NOT go hunting for them on the filesystem/)
+  // v20: bounded onboarding then STOP and WAIT for the user's own thoughts
+  assert.match(prompt, /BOUNDED ONBOARDING, THEN STOP AND WAIT FOR THE USER/)
+  assert.match(prompt, /Do NOT propose a joint plan/)
+  assert.match(prompt, /WAIT for their reply/)
+  assert.match(prompt, /A new user message is the user's own thought/)
+})
+
+test('coordinate-hub: -- note hands the user thoughts to the coordinator in the same command (v21)', async () => {
+  const defs = []
+  const commands = { register(def) { defs.push(def); return () => {} } }
+  const steered = []
+  const hub = { id: 's-hub', session: { id: 's-hub', events: [] }, steer(msg) { steered.push(msg) }, followup() {} }
+  const sessions = {
+    's-front': { id: 's-front', session: { id: 's-front', events: [] }, followup() {} },
+    's-back': { id: 's-back', session: { id: 's-back', events: [] }, followup() {} },
+  }
+  const agents = { get(id) { return sessions[id] || (id === 's-hub' ? hub : undefined) } }
+  const ctx = {
+    get(name) { if (name === 'commands') return commands; if (name === 'agents') return agents; return undefined },
+    on() {}, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx, {})
+  const cmd = defs.find((d) => d.name === 'coordinate-hub')
+  const result = await cmd.handler({ agent: hub, rawInput: 's-front s-back -- 先对齐范围再动手，重点是接口契约', commandId: 'c86', signal: undefined })
+  assert.equal(result.kind, 'success', result.text)
+  assert.match(result.text, /s-front, s-back/)
+  assert.match(result.text, /Your thoughts recorded/)
+  const prompt = steered[0].content ? steered[0].content.map((c) => c.text).join(' ') : String(steered[0])
+  assert.match(prompt, /THE USER'S THOUGHTS/)
+  assert.match(prompt, /先对齐范围再动手，重点是接口契约/)
+  // with a note: propose a plan folding it in, then ASK for confirmation
+  assert.match(prompt, /FOLDS IN the user's thoughts/)
+  assert.match(prompt, /ASK the user to confirm or adjust/)
+})
+
+test('coordinate-hub: without a note the onboarding asks the user what they want (v21)', async () => {
+  const defs = []
+  const commands = { register(def) { defs.push(def); return () => {} } }
+  const steered = []
+  const hub = { id: 's-hub', session: { id: 's-hub', events: [] }, steer(msg) { steered.push(msg) }, followup() {} }
+  const sessions = {
+    's-front': { id: 's-front', session: { id: 's-front', events: [] }, followup() {} },
+    's-back': { id: 's-back', session: { id: 's-back', events: [] }, followup() {} },
+  }
+  const agents = { get(id) { return sessions[id] || (id === 's-hub' ? hub : undefined) } }
+  const ctx = {
+    get(name) { if (name === 'commands') return commands; if (name === 'agents') return agents; return undefined },
+    on() {}, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx, {})
+  const cmd = defs.find((d) => d.name === 'coordinate-hub')
+  const result = await cmd.handler({ agent: hub, rawInput: 's-front s-back', commandId: 'c87', signal: undefined })
+  assert.equal(result.kind, 'success', result.text)
+  const prompt = steered[0].content ? steered[0].content.map((c) => c.text).join(' ') : String(steered[0])
+  assert.match(prompt, /ASK them what they want/)
+  assert.match(prompt, /what to coordinate, what to prioritize/)
+  assert.match(prompt, /Do NOT propose a joint plan/)
+  // no USER'S THOUGHTS block when no note was given
+  assert.doesNotMatch(prompt, /THE USER'S THOUGHTS/)
+})
+
+test('coordinate-intake: relays the status-sync question to every spoke (v13)', async () => {
+  const defs = []
+  const commands = { register(def) { defs.push(def); return () => {} } }
+  const received = []
+  const sessions = {
+    's-hub': { id: 's-hub', session: { id: 's-hub', events: [] }, steer() {}, followup() {} },
+    's-front': { id: 's-front', session: { id: 's-front', events: [] }, followup(msg) { if (msg.source && msg.source.kind === 'continuity-coord') received.push({ to: 's-front', text: msg.content[0].text }) } },
+    's-back': { id: 's-back', session: { id: 's-back', events: [] }, followup(msg) { if (msg.source && msg.source.kind === 'continuity-coord') received.push({ to: 's-back', text: msg.content[0].text }) } },
+  }
+  const agents = { get(id) { return sessions[id] } }
+  const ctx = {
+    get(name) { if (name === 'commands') return commands; if (name === 'agents') return agents; return undefined },
+    on() {}, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx, {})
+  const hubCmd = defs.find((d) => d.name === 'coordinate-hub')
+  await hubCmd.handler({ agent: sessions['s-hub'], rawInput: 's-front s-back', commandId: 'c77', signal: undefined })
+  const intake = defs.find((d) => d.name === 'coordinate-intake')
+  assert.ok(intake, 'coordinate-intake command registered')
+  const out = await intake.handler({ agent: sessions['s-hub'], rawInput: '', commandId: 'c78', signal: undefined })
+  assert.equal(out.kind, 'success', out.text)
+  assert.equal(received.length, 2, JSON.stringify(received))
+  assert.match(received[0].text, /协调者发起状态同步/)
+  assert.match(received[0].text, /遇到的问题/)
+  // not a hub → honest error
+  const out2 = await intake.handler({ agent: sessions['s-front'], rawInput: '', commandId: 'c79', signal: undefined })
+  assert.equal(out2.kind, 'error')
+  assert.match(out2.text, /not a coordination hub/)
+})
+
+test('pace: /pace steers a pace-check reflection into the session (v14)', async () => {
+  const defs = []
+  const commands = { register(def) { defs.push(def); return () => {} } }
+  const steered = []
+  const agent = { id: 's-long', session: { id: 's-long', events: [] }, steer(msg) { steered.push(msg) } }
+  const ctx = {
+    get(name) { if (name === 'commands') return commands; return undefined },
+    on() {}, effect(fn) { fn() },
+  }
+  continuityPlugin(ctx, {})
+  const cmd = defs.find((d) => d.name === 'pace')
+  assert.ok(cmd, 'pace command registered')
+  const out = cmd.handler({ agent, rawInput: '', commandId: 'c80', signal: undefined })
+  assert.equal(out.kind, 'success', out.text)
+  assert.equal(steered.length, 1)
+  const text = steered[0].content ? steered[0].content.map((c) => c.text).join(' ') : String(steered[0])
+  assert.match(text, /Pace check/)
+  assert.match(text, /fastest reasonable one/)
+  assert.match(text, /scope still right/)
+})
+
+test('pace: paceDue gate fires only after the first threshold and respects the interval (v14)', () => {
+  const cfg = { paceCheckMinutes: 30, paceCheckIntervalMin: 20 }
+  const now = 1_800_000_000_000
+  // no record → never due (first sight arms the timer)
+  assert.equal(paceDue(null, cfg, now), false)
+  assert.equal(paceDue({ firstSeenAt: null, lastCheckAt: null }, cfg, now), false)
+  // before the first threshold → not due
+  assert.equal(paceDue({ firstSeenAt: now - 10 * 60000, lastCheckAt: null }, cfg, now), false)
+  // after the first threshold → due
+  assert.equal(paceDue({ firstSeenAt: now - 31 * 60000, lastCheckAt: null }, cfg, now), true)
+  // after a recent check → not due
+  assert.equal(paceDue({ firstSeenAt: now - 60 * 60000, lastCheckAt: now - 5 * 60000 }, cfg, now), false)
+  // interval elapsed → due again
+  assert.equal(paceDue({ firstSeenAt: now - 60 * 60000, lastCheckAt: now - 25 * 60000 }, cfg, now), true)
+})
+
 test('wiring: worktree commands delegate to the host service and register the roles section', async () => {
   const defs = []
   const sections = []
@@ -396,6 +1098,8 @@ test('wiring: worktree commands delegate to the host service and register the ro
   assert.equal(sections.length, 1)
   assert.equal(sections[0].name, 'continuity-roles')
   assert.equal(sections[0].order, 150)
+  // v25: the roles section carries the new human-facing mode name
+  assert.match(sections[0].text, /## Orchestra roles（乐团模式）/)
   const byName = (name) => defs.find((d) => d.name === name)
   await byName('worktree').handler({ agent, rawInput: ' build the api ', commandId: 'c11', signal: undefined })
   await byName('workers').handler({ agent, rawInput: '', commandId: 'c12', signal: undefined })

@@ -19,7 +19,7 @@ The current repository must not contain the implementation.
 Required:
 
 ```text
-continuity / 接力模式
+continuity / Orchestra（乐团模式，曾用名：接力模式）
 ```
 
 Role:
@@ -215,8 +215,8 @@ The new Agent must verify the actual workspace.
 System-level capability is demonstrated only when:
 
 ```text
-workspace A → 接力模式 works
-workspace B → 接力模式 works
+workspace A → Orchestra（乐团模式） works
+workspace B → Orchestra（乐团模式） works
 ```
 
 Workspace B must be unrelated to the build/creation workspace.
@@ -229,7 +229,7 @@ There are two valid product choices:
 
 ### Preset-specific
 
-Continuity exists when selecting `接力模式`.
+Continuity exists when selecting `Orchestra（乐团模式）`.
 
 Advantages:
 
@@ -274,7 +274,7 @@ Removal must be documented and reversible:
 2. User-owned preset copied from `standard`.
 3. Persistent companion component outside business repositories.
 4. Official mount validation passes.
-5. Real session exposes `/continuity`, `/handoff`, `/continue`（V3 MVP 三命令下限；当前 12 条命令见 V4 §7d）。
+5. Real session exposes `/continuity`, `/handoff`, `/continue`（V3 MVP 三命令下限；当前 23 条命令与协调/节奏/纪律新模式见 V4 §7d/§7e）。
 6. Restart test passes.
 7. Unrelated workspace test passes.
 8. No Creation Mode tooling in the final preset.

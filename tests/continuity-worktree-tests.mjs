@@ -20,8 +20,9 @@ import {
   extractWorkerReport,
   classifyGitProbe,
   isWorktreeConflict,
-} from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-worktree.v3.mjs'
-import continuityWorktree from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-worktree.v3.mjs'
+  approvalOutcomeOfAnswer,
+} from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-worktree.v6.mjs'
+import continuityWorktree from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-worktree.v6.mjs'
 
 let passed = 0
 let failed = 0
@@ -163,10 +164,25 @@ test('config defaults and clamping', () => {
   assert.equal(cfg.worktreeParent, null)
   assert.equal(cfg.reportCapChars, 8000)
   assert.equal(cfg.worktreeMarker, '-wt-')
-  const off = sanitizeWorktreeConfig({ askApproval: false, reportCapChars: 10, worktreeParent: 'C:\\work' })
+  assert.equal(cfg.notifyWorkerDone, true)
+  assert.equal(cfg.forwardWorkerApprovals, true)
+  assert.equal(cfg.approvalForwardTimeoutMs, 120000)
+  const off = sanitizeWorktreeConfig({ askApproval: false, reportCapChars: 10, worktreeParent: 'C:\\work', notifyWorkerDone: false, forwardWorkerApprovals: false, approvalForwardTimeoutMs: 1000 })
   assert.equal(off.askApproval, false)
   assert.equal(off.reportCapChars, 1000)
   assert.equal(off.worktreeParent, 'C:\\work')
+  assert.equal(off.notifyWorkerDone, false)
+  assert.equal(off.forwardWorkerApprovals, false)
+  assert.equal(off.approvalForwardTimeoutMs, 5000)
+})
+
+test('approvalOutcomeOfAnswer maps the coordinator card choice', () => {
+  assert.equal(approvalOutcomeOfAnswer({ answers: [{ id: 'q', selected: ['批准（allowed-once）'] }] }), 'allowed-once')
+  assert.equal(approvalOutcomeOfAnswer({ answers: [{ id: 'q', selected: ['拒绝'] }] }), 'rejected')
+  assert.equal(approvalOutcomeOfAnswer({ answers: [{ id: 'q', selected: [] }] }), null)
+  assert.equal(approvalOutcomeOfAnswer({ answers: [] }), null)
+  assert.equal(approvalOutcomeOfAnswer(null), null)
+  assert.equal(approvalOutcomeOfAnswer(undefined), null)
 })
 
 test('slugify produces stable branch slugs', () => {
@@ -243,6 +259,18 @@ test('wiring: publishes the service with the full command surface', () => {
   for (const method of ['spawn', 'spawnWorker', 'list', 'send', 'stop', 'cleanup', 'report', 'mission']) {
     assert.equal(typeof provided[SERVICE][method], 'function', method)
   }
+})
+
+test('wiring: notifyWorkerDone (default on) registers a session/event listener; disabled does not', () => {
+  const registeredOn = []
+  const ctx1 = { get() { return undefined }, on(event, listener) { registeredOn.push([event, listener]) }, provide() {} }
+  continuityWorktree(ctx1, {})
+  assert.ok(registeredOn.some(([event]) => event === 'session/event'), 'default registers session/event')
+
+  const registeredOff = []
+  const ctx2 = { get() { return undefined }, on(event, listener) { registeredOff.push([event, listener]) }, provide() {} }
+  continuityWorktree(ctx2, { notifyWorkerDone: false })
+  assert.ok(!registeredOff.some(([event]) => event === 'session/event'), 'notifyWorkerDone:false registers no session/event')
 })
 
 test('spawnWorker returns structured errors for missing cwd and structured success shape is exercised', async () => {

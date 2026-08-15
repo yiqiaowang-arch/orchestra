@@ -1,2 +1,2 @@
-name: 接力模式
-description: 基于标准模式的完整编码 Agent，提供跨项目的上下文压力监测、可验证交接检查点和跨会话继续能力。
+name: Orchestra（乐团模式）
+description: 基于标准模式的完整编码 Agent：上下文压力监测、可验证交接与跨会话继续（接力）、worktree 并行 worker（声部）、有界 mission 编排（乐谱）、多会话协调 hub 与重要升级（指挥）、节奏感知（节拍）。曾用名：接力模式。
