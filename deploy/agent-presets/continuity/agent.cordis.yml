@@ -268,7 +268,7 @@
 # generation is stamped from THIS file — after editing the companion .mjs,
 # touch this file to start a fresh generation. The loader caches imported
 # modules by URL for the process lifetime, so a plugin code upgrade ships as
-# a NEW versioned file name plus a row update here (see continuity-plugin.v30.mjs;
+# a NEW versioned file name plus a row update here (see continuity-plugin.v31.mjs;
 # the .mjs without a version is the previous generation).
 - id: continuity
   name: cordis:group
@@ -280,7 +280,7 @@
       name: '@deepseek-ai/dsh-session-reference'
 
     - id: continuity-plugin
-      name: ./continuity-plugin.v30.mjs
+      name: ./continuity-plugin.v31.mjs
       config:
         warningRatio: 0.60
         checkpointRatio: 0.70

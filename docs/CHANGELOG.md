@@ -1,5 +1,13 @@
 # CHANGELOG.md — 版本史
 
+## v31 — 压力感知巡检（2026-08-17）
+
+**插件 v31**（驱动器不变；151/151 测试）
+
+- hub 巡检升级为"进度 + 压力"双查：每次 check-in 顺带测每个 spoke 的上下文压力（tokenMeter + llm 容量，与 /continuity 同口径），超过 rotateRatio 的 spoke 在巡检提示里给出 **CONTEXT PRESSURE ALERT**（worker → `/worker-successor` 提示；其他 → 建议用户 `/rotate`）；容量未知跳过、非 live 报告。
+- 纯函数 `spokePressureAlert` 导出可测；巡检提示 `hubCheckPrompt` 支持 alerts 块。
+- 测试 149 → **151**（+2：压力告警数学 / 提示含 alerts 块）。
+
 ## v30 — 完成报告必达（2026-08-17）
 
 **插件 v30**（驱动器不变；149/149 测试）

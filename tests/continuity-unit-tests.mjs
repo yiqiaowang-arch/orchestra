@@ -1,6 +1,6 @@
 /**
  * Focused unit tests for the continuity preset companion plugin
- * (C:\Users\wangy\.dsh\.agent-presets\continuity\continuity-plugin.v30.mjs).
+ * (C:\Users\wangy\.dsh\.agent-presets\continuity\continuity-plugin.v31.mjs).
  *
  * Run with: node continuity-unit-tests.mjs
  * Exit code 0 = all tests passed.
@@ -32,8 +32,9 @@ import {
   hubCheckDue,
   hubCheckPrompt,
   WORKER_REPORT_MARKER,
-} from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v30.mjs'
-import continuityPlugin from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v30.mjs'
+  spokePressureAlert,
+} from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v31.mjs'
+import continuityPlugin from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v31.mjs'
 
 let passed = 0
 let failed = 0
@@ -895,6 +896,26 @@ test('coordination: completion reports forward even without the marker (v30)', a
   assert.equal(received.length, 1, JSON.stringify(received))
   assert.match(received[0].text, /完成了/)
   assert.equal(WORKER_REPORT_MARKER, '## Worker report')
+})
+
+test('spokePressureAlert: over-threshold alerts, under/unknown skip (v31)', () => {
+  const alert = spokePressureAlert('s-front', 90000, 100000, 0.78)
+  assert.ok(alert !== null)
+  assert.match(alert, /s-front/)
+  assert.match(alert, /90%/)
+  assert.match(alert, /worker-successor/)
+  assert.equal(spokePressureAlert('s-front', 70000, 100000, 0.78), null)
+  assert.equal(spokePressureAlert('s-front', null, 100000, 0.78), null)
+  assert.equal(spokePressureAlert('s-front', 90000, null, 0.78), null)
+  assert.equal(spokePressureAlert('s-front', 90000, 0, 0.78), null)
+})
+
+test('hubCheckPrompt: appends CONTEXT PRESSURE ALERTS when present (v31)', () => {
+  const plain = hubCheckPrompt(20, 's-hub')
+  assert.doesNotMatch(plain, /CONTEXT PRESSURE ALERTS/)
+  const withAlerts = hubCheckPrompt(20, 's-hub', ['s-front: context at 90% (past the rotate threshold 78%) — alert body'])
+  assert.match(withAlerts, /CONTEXT PRESSURE ALERTS/)
+  assert.match(withAlerts, /s-front: context at 90%/)
 })
 
 test('coordination: full-log restore fallback via readSession (v28)', async () => {
