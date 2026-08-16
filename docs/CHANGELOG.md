@@ -1,5 +1,12 @@
 # CHANGELOG.md — 版本史
 
+## 仓库：开源消毒（2026-08-17）
+
+- 个人绝对路径 `C:\Users\wangy\` 全部替换为 `C:\Users\<USER>\` 占位（覆盖 `C:/Users/wangy/`、`C:\Users\wangy\`、转义 `C:\\Users\\wangy\\` 三种拼写），仓库公开后可安全分发。
+- 4 套测试 + `validate-mermaid.mjs` 不再写死本机路径：从 `$DSH_HOME` / `$DSH_HARNESS` 环境变量（缺省 `~/.dsh` / `~/Documents/GitHub/deepseek-harness`）动态解析后 `import`。
+- `sync-deploy.ps1` 在镜像 deploy 树时自动消毒；153/153 测试通过，仓库内 0 处 `wangy` 路径残留（仅消毒正则本身保留该串，属预期）。
+- README（中/英）声明更新：占位符 + 环境变量约定。
+
 ## 仓库：deploy 镜像只留当前版本（2026-08-17）
 
 - `sync-deploy.ps1` 重写：从 web patch / 组合行**自动解析当前版本**（正则锚定 `name:` 行，注释里的旧版本号不再干扰），只镜像当前版本；deploy 中非当前文件自动移入 `deploy\archive\`（55 个旧代次归档，回滚时取回即可，install.ps1 永不复制）。

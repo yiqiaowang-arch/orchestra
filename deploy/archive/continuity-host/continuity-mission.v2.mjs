@@ -46,8 +46,8 @@ import {
   textOfMessage,
   sectionBody,
   MARKER,
-} from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v3.mjs'
-import { MISSION_MARKER } from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-worktree.v2.mjs'
+} from 'file:///C:/Users/<USER>/.dsh/.agent-presets/continuity/continuity-plugin.v3.mjs'
+import { MISSION_MARKER } from 'file:///C:/Users/<USER>/.dsh/continuity-host/continuity-worktree.v2.mjs'
 
 export const SERVICE = 'continuityMission'
 export const PLAN_MARKER = '<!-- DSH_MISSION_PLAN v1 -->'

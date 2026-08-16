@@ -44,7 +44,7 @@ import {
   capText,
   textOfMessage,
   buildInstruction,
-} from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v2.mjs'
+} from 'file:///C:/Users/<USER>/.dsh/.agent-presets/continuity/continuity-plugin.v2.mjs'
 
 export const SERVICE = 'continuityRotation'
 

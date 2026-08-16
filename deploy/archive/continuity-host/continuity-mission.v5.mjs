@@ -54,8 +54,8 @@ import {
   textOfMessage,
   sectionBody,
   MARKER,
-} from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-shared.v1.mjs'
-import { MISSION_MARKER } from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-shared.v1.mjs'
+} from 'file:///C:/Users/<USER>/.dsh/continuity-host/continuity-shared.v1.mjs'
+import { MISSION_MARKER } from 'file:///C:/Users/<USER>/.dsh/continuity-host/continuity-shared.v1.mjs'
 
 export const SERVICE = 'continuityMission'
 export const PLAN_MARKER = '<!-- DSH_MISSION_PLAN v1 -->'

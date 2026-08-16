@@ -1,12 +1,18 @@
 /**
  * Focused unit tests for the continuity preset companion plugin
- * (C:\Users\wangy\.dsh\.agent-presets\continuity\continuity-plugin.v32.mjs).
+ * (C:\Users\<USER>\.dsh\.agent-presets\continuity\continuity-plugin.v32.mjs).
  *
  * Run with: node continuity-unit-tests.mjs
  * Exit code 0 = all tests passed.
+ *
+ * The plugin is imported dynamically from $DSH_HOME (default ~/.dsh) so the
+ * repository carries no personal absolute paths.
  */
 import { strict as assert } from 'node:assert'
-import {
+import { join } from 'node:path'
+const DSH = (process.env.DSH_HOME ? process.env.DSH_HOME : join(process.env.USERPROFILE || process.env.HOME || '', '.dsh')).replace(/\\/g, '/')
+const pluginModule = await import('file:///' + DSH + '/.agent-presets/continuity/continuity-plugin.v32.mjs')
+const {
   MARKER,
   REQUIRED_SECTIONS,
   sanitizeConfig,
@@ -33,8 +39,8 @@ import {
   hubCheckPrompt,
   WORKER_REPORT_MARKER,
   spokePressureAlert,
-} from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v32.mjs'
-import continuityPlugin from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v32.mjs'
+} = pluginModule
+const continuityPlugin = pluginModule.default
 
 let passed = 0
 let failed = 0

@@ -2,25 +2,34 @@
  * Validate every ```mermaid block in the repo docs with mermaid.parse().
  * Usage: node tests/validate-mermaid.mjs
  * Exit 0 = every diagram parses.
+ *
+ * The harness checkout (jsdom/mermaid) and the repo root are resolved from
+ * $DSH_HARNESS and $DSH_HOME (defaults: ~/Documents/GitHub/deepseek-harness
+ * and ~/.dsh) so the repository carries no personal absolute paths.
  */
 import { readFileSync, readdirSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { createRequire } from 'node:module'
 
+const DSH = process.env.DSH_HOME ? process.env.DSH_HOME : join(process.env.USERPROFILE || process.env.HOME || '', '.dsh')
+const HARNESS = process.env.DSH_HARNESS
+  ? process.env.DSH_HARNESS
+  : join(process.env.USERPROFILE || process.env.HOME || '', 'Documents', 'GitHub', 'deepseek-harness')
+
 // Node adaptation for mermaid's browser bundle: dompurify's factory needs a
 // real window. jsdom ships inside the harness checkout's dependencies.
-const require = createRequire('file:///C:/Users/wangy/Documents/GitHub/deepseek-harness/noop.js')
-const { JSDOM } = require('C:/Users/wangy/Documents/GitHub/deepseek-harness/node_modules/jsdom')
+const require = createRequire('file:///' + HARNESS.replace(/\\/g, '/') + '/noop.js')
+const { JSDOM } = require(join(HARNESS, 'node_modules', 'jsdom'))
 const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>')
 globalThis.window = dom.window
 globalThis.document = dom.window.document
 globalThis.self = dom.window
 try { globalThis.navigator = dom.window.navigator } catch { /* node 22 exposes a getter-only navigator; mermaid tolerates its absence */ }
 
-const mermaid = require('C:/Users/wangy/Documents/GitHub/deepseek-harness/node_modules/mermaid/dist/mermaid.core.mjs').default
+const mermaid = require(join(HARNESS, 'node_modules', 'mermaid', 'dist', 'mermaid.core.mjs')).default
 await mermaid.initialize({ startOnLoad: false })
 
-const root = resolve('C:/Users/wangy/.dsh/designs/continuity-v3')
+const root = resolve(join(DSH, 'designs', 'continuity-v3'))
 const files = ['README.md', ...readdirSync(join(root, 'docs')).filter((f) => f.endsWith('.md')).map((f) => join('docs', f)), ...readdirSync(join(root, 'docs', 'design')).map((f) => join('docs', 'design', f))]
 
 let passed = 0

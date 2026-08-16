@@ -17,10 +17,10 @@ import continuityMission, {
   scanWorkerEvents,
   findMissionCheckpoint,
   missionGoalFromCheckpoint,
-} from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-mission.v8.mjs'
+} from 'file:///C:/Users/<USER>/.dsh/continuity-host/continuity-mission.v8.mjs'
 
 export default function patchPipelineTest(ctx, config) {
-  const outPath = (config && config.outPath) || 'C:\\Users\\wangy\\.dsh\\continuity-host\\pipeline-result.json'
+  const outPath = (config && config.outPath) || 'C:\\Users\\<USER>\\.dsh\\continuity-host\\pipeline-result.json'
   const finish = () => {
     // Direct-import mission check (no mission row in this profile).
     const provided = {}

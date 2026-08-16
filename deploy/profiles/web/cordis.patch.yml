@@ -5,7 +5,7 @@
 # ── continuity (V4 phase A, user-owned) ──────────────────────────────────────
 # Host-plane rollover driver installed through the official profile patch
 # layer. The plugin file lives outside every business repository at
-# C:\Users\wangy\.dsh\continuity-host\continuity-rotation.v6.mjs and
+# C:\Users\<USER>\.dsh\continuity-host\continuity-rotation.v6.mjs and
 # publishes the `continuityRotation` service consumed by the `continuity`
 # preset's /rotate command. Config below is user-editable and hot-reloaded by
 # the loader. Upgrade path: ship a NEW versioned file name and update the row
@@ -14,7 +14,7 @@
 # (Remove this whole entry to uninstall.)
 - insert:
     - id: continuity-rotation
-      name: file:///C:/Users/wangy/.dsh/continuity-host/continuity-rotation.v8.mjs
+      name: file:///C:/Users/<USER>/.dsh/continuity-host/continuity-rotation.v8.mjs
       config:
         rotateRatio: 0.78
         autoRollover: suggest
@@ -30,7 +30,7 @@
     # request must return allowed-once. Set askApproval: false to disable the
     # gate explicitly (danger-full-access style usage).
     - id: continuity-worktree
-      name: file:///C:/Users/wangy/.dsh/continuity-host/continuity-worktree.v8.mjs
+      name: file:///C:/Users/<USER>/.dsh/continuity-host/continuity-worktree.v8.mjs
       config:
         askApproval: true
         reportCapChars: 8000
@@ -42,7 +42,7 @@
     # (bounded) → closeout (durable mission checkpoint) | escalate. All
     # phases carry timeouts and round caps; the loop never silently expands.
     - id: continuity-mission
-      name: file:///C:/Users/wangy/.dsh/continuity-host/continuity-mission.v8.mjs
+      name: file:///C:/Users/<USER>/.dsh/continuity-host/continuity-mission.v8.mjs
       config:
         maxTasks: 4
         maxConcurrent: 2

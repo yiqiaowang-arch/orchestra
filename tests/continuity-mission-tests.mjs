@@ -1,10 +1,16 @@
 /**
  * Unit tests for the host-side continuity-mission driver
- * (C:\Users\wangy\.dsh\continuity-host\continuity-mission.v8.mjs).
+ * (C:\Users\<USER>\.dsh\continuity-host\continuity-mission.v8.mjs).
  * Run with: node continuity-mission-tests.mjs
+ *
+ * The driver and shared helpers are imported dynamically from $DSH_HOME
+ * (default ~/.dsh) so the repository carries no personal absolute paths.
  */
 import { strict as assert } from 'node:assert'
-import {
+import { join } from 'node:path'
+const DSH = (process.env.DSH_HOME ? process.env.DSH_HOME : join(process.env.USERPROFILE || process.env.HOME || '', '.dsh')).replace(/\\/g, '/')
+const missionModule = await import('file:///' + DSH + '/continuity-host/continuity-mission.v8.mjs')
+const {
   SERVICE,
   PLAN_MARKER,
   sanitizeMissionConfig,
@@ -15,9 +21,10 @@ import {
   findMissionCheckpoint,
   missionGoalFromCheckpoint,
   missionSummary,
-} from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-mission.v8.mjs'
-import continuityMission from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-mission.v7.mjs'
-import { MISSION_MARKER } from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-shared.v1.mjs'
+} = missionModule
+const continuityMission = missionModule.default
+const sharedModule = await import('file:///' + DSH + '/continuity-host/continuity-shared.v2.mjs')
+const { MISSION_MARKER } = sharedModule
 
 let passed = 0
 let failed = 0

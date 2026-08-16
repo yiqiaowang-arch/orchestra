@@ -4,13 +4,17 @@
  * idempotent re-entry, partial-success rollback, approval-reject (no
  * half-artifact), non-Git classification, and cancel semantics.
  * Run with: node continuity-worktree-tests.mjs
+ *
+ * The driver and shared helpers are imported dynamically from $DSH_HOME
+ * (default ~/.dsh) so the repository carries no personal absolute paths.
  */
 import { strict as assert } from 'node:assert'
 import { mkdtempSync, mkdirSync, existsSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, basename } from 'node:path'
-import { MISSION_MARKER as SHARED_MISSION_MARKER } from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-shared.v1.mjs'
-import {
+const DSH = (process.env.DSH_HOME ? process.env.DSH_HOME : join(process.env.USERPROFILE || process.env.HOME || '', '.dsh')).replace(/\\/g, '/')
+const worktreeModule = await import('file:///' + DSH + '/continuity-host/continuity-worktree.v8.mjs')
+const {
   SERVICE,
   MISSION_MARKER,
   sanitizeWorktreeConfig,
@@ -22,8 +26,10 @@ import {
   classifyGitProbe,
   isWorktreeConflict,
   approvalOutcomeOfAnswer,
-} from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-worktree.v8.mjs'
-import continuityWorktree from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-worktree.v8.mjs'
+} = worktreeModule
+const continuityWorktree = worktreeModule.default
+const sharedModule = await import('file:///' + DSH + '/continuity-host/continuity-shared.v2.mjs')
+const { MISSION_MARKER: SHARED_MISSION_MARKER } = sharedModule
 
 let passed = 0
 let failed = 0

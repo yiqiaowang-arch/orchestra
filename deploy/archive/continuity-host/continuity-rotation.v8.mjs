@@ -65,7 +65,7 @@ import {
   textOfMessage,
   buildInstruction,
   COORD_LINK_MARKER,
-} from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-shared.v2.mjs'
+} from 'file:///C:/Users/<USER>/.dsh/continuity-host/continuity-shared.v2.mjs'
 
 export const SERVICE = 'continuityRotation'
 

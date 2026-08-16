@@ -78,7 +78,7 @@ import {
   capText,
   textOfMessage,
   MISSION_MARKER,
-} from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-shared.v2.mjs'
+} from 'file:///C:/Users/<USER>/.dsh/continuity-host/continuity-shared.v2.mjs'
 
 export const SERVICE = 'continuityWorktree'
 // v7: re-exported from shared.v1 — single source of truth for the mission

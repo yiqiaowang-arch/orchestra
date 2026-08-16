@@ -1,19 +1,26 @@
 /**
  * Unit tests for the host-side continuity-rotation driver
- * (C:\Users\wangy\.dsh\continuity-host\continuity-rotation.v8.mjs).
+ * (C:\Users\<USER>\.dsh\continuity-host\continuity-rotation.v8.mjs).
  * Run with: node continuity-rotation-tests.mjs
+ *
+ * The driver and shared helpers are imported dynamically from $DSH_HOME
+ * (default ~/.dsh) so the repository carries no personal absolute paths.
  */
 import { strict as assert } from 'node:assert'
-import {
+import { join } from 'node:path'
+const DSH = (process.env.DSH_HOME ? process.env.DSH_HOME : join(process.env.USERPROFILE || process.env.HOME || '', '.dsh')).replace(/\\/g, '/')
+const rotationModule = await import('file:///' + DSH + '/continuity-host/continuity-rotation.v8.mjs')
+const {
   SERVICE,
   sanitizeRotationConfig,
   decide,
   freshRotationCache,
   foldRotationEvent,
   foldRotationIncremental,
-} from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-rotation.v8.mjs'
-import continuityRotation from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-rotation.v8.mjs'
-import { textOfMessage } from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-shared.v2.mjs'
+} = rotationModule
+const continuityRotation = rotationModule.default
+const sharedModule = await import('file:///' + DSH + '/continuity-host/continuity-shared.v2.mjs')
+const { textOfMessage } = sharedModule
 
 let passed = 0
 let failed = 0

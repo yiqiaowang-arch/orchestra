@@ -62,7 +62,7 @@ import {
   userMessage,
   capText,
   textOfMessage,
-} from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-shared.v1.mjs'
+} from 'file:///C:/Users/<USER>/.dsh/continuity-host/continuity-shared.v1.mjs'
 
 export const SERVICE = 'continuityWorktree'
 export const MISSION_MARKER = '<!-- DSH_MISSION v1 -->'

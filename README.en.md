@@ -72,4 +72,6 @@ Then create a session, pick **Orchestra** in the preset selector, and run `/cont
 
 ## License
 
-This project is a personal capability extension for DeepSeek Harness (MIT), running entirely in the user-owned directory (`~/.dsh`), decoupled from any business repository; it never modifies the shipped installation. Licensed under the [MIT License](LICENSE), same as DeepSeek Harness. Before redistributing, replace the absolute paths and re-verify the install script.
+This project is a personal capability extension for DeepSeek Harness (MIT), running entirely in the user-owned directory (`~/.dsh`), decoupled from any business repository; it never modifies the shipped installation. Licensed under the [MIT License](LICENSE), same as DeepSeek Harness.
+
+The repository contains no personal absolute paths: local paths appear as the `C:\Users\<USER>\` placeholder, and the install script, tests, and doc checks resolve real locations dynamically from the `$DSH_HOME` / `$DSH_HARNESS` environment variables (defaulting to `~/.dsh` / `~/Documents/GitHub/deepseek-harness`).

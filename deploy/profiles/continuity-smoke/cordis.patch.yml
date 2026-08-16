@@ -3,12 +3,12 @@
 # the visibility result and exits.
 - insert:
     - id: continuity-rotation-beacon
-      name: file:///C:/Users/wangy/.dsh/continuity-host/rotation-beacon.mjs
+      name: file:///C:/Users/<USER>/.dsh/continuity-host/rotation-beacon.mjs
 
     - id: continuity-rotation
-      name: file:///C:/Users/wangy/.dsh/continuity-host/continuity-rotation.v7.mjs
+      name: file:///C:/Users/<USER>/.dsh/continuity-host/continuity-rotation.v7.mjs
 
     - id: patch-pipeline-runner
-      name: file:///C:/Users/wangy/.dsh/continuity-host/patch-pipeline-test.mjs
+      name: file:///C:/Users/<USER>/.dsh/continuity-host/patch-pipeline-test.mjs
       config:
-        outPath: C:\Users\wangy\.dsh\continuity-host\pipeline-result.json
+        outPath: C:\Users\<USER>\.dsh\continuity-host\pipeline-result.json

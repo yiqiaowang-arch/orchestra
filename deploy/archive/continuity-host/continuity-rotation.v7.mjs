@@ -52,7 +52,7 @@ import {
   capText,
   textOfMessage,
   buildInstruction,
-} from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-shared.v1.mjs'
+} from 'file:///C:/Users/<USER>/.dsh/continuity-host/continuity-shared.v1.mjs'
 
 export const SERVICE = 'continuityRotation'
 

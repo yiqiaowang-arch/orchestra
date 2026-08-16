@@ -38,8 +38,8 @@ node tests\continuity-rotation-tests.mjs  # 22 项
 node tests\continuity-worktree-tests.mjs  # 32 项
 node tests\continuity-mission-tests.mjs   # 23 项  （合计 153）
 node tests\validate-mermaid.mjs           # 所有 ```mermaid 图必须解析通过
-node C:\Users\wangy\Documents\GitHub\deepseek-harness\apps\cli\lib\bin.js --profile web --dump-config
-node C:\Users\wangy\Documents\GitHub\deepseek-harness\apps\cli\lib\bin.js --profile continuity-smoke
+node C:\Users\<USER>\Documents\GitHub\deepseek-harness\apps\cli\lib\bin.js --profile web --dump-config
+node C:\Users\<USER>\Documents\GitHub\deepseek-harness\apps\cli\lib\bin.js --profile continuity-smoke
 ```
 
 ## 升级规程（版本化 URL 规则，G7/G8）

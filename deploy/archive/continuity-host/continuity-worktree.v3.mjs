@@ -57,7 +57,7 @@ import {
   userMessage,
   capText,
   textOfMessage,
-} from 'file:///C:/Users/wangy/.dsh/.agent-presets/continuity/continuity-plugin.v2.mjs'
+} from 'file:///C:/Users/<USER>/.dsh/.agent-presets/continuity/continuity-plugin.v2.mjs'
 
 export const SERVICE = 'continuityWorktree'
 export const MISSION_MARKER = '<!-- DSH_MISSION v1 -->'

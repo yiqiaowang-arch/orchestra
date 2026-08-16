@@ -9,7 +9,7 @@ DeepSeek Harness 的上下文接力能力栈：预设 `continuity`（Orchestra �
 
 ## 2. 红线（违反即失败）
 
-1. **绝不修改**出厂 Harness 安装（`C:\Users\wangy\Documents\GitHub\deepseek-harness\` 只读参考）；绝不修改当前项目工作区（你的 session cwd）。
+1. **绝不修改**出厂 Harness 安装（`C:\Users\<USER>\Documents\GitHub\deepseek-harness\` 只读参考）；绝不修改当前项目工作区（你的 session cwd）。
 2. **护栏只许加强**：worktree 授权门（审批 `ask` 必须 `allowed-once`）、`/rotate` 链保护（拒绝 `parentSession` 会话）、worker 永不自动轮换、绝不自动 merge/checkout/reset/clean。
 3. 预设行发布 Service 必须置于 `isolate` realm 组；驱动器服务访问必须**调用期惰性 `ctx.get`**。
 4. 旧代次文件**永远保留**（运行中的进程可能仍引用它们）。
@@ -31,8 +31,8 @@ node tests\continuity-unit-tests.mjs       # 76
 node tests\continuity-rotation-tests.mjs   # 22
 node tests\continuity-worktree-tests.mjs   # 32
 node tests\continuity-mission-tests.mjs    # 23   —— 合计 153，必须全绿
-node C:\Users\wangy\Documents\GitHub\deepseek-harness\apps\cli\lib\bin.js --profile web --dump-config
-node C:\Users\wangy\Documents\GitHub\deepseek-harness\apps\cli\lib\bin.js --profile continuity-smoke
+node C:\Users\<USER>\Documents\GitHub\deepseek-harness\apps\cli\lib\bin.js --profile web --dump-config
+node C:\Users\<USER>\Documents\GitHub\deepseek-harness\apps\cli\lib\bin.js --profile continuity-smoke
 node tests\validate-mermaid.mjs   # 所有 ```mermaid 图必须解析通过
 ```
 
@@ -65,12 +65,12 @@ node tests\validate-mermaid.mjs   # 所有 ```mermaid 图必须解析通过
 
 | 路径 | 内容 |
 |---|---|
-| `C:\Users\wangy\.dsh\.agent-presets\continuity\` | 预设（组合 + 插件全代次 + preset.yml） |
-| `C:\Users\wangy\.dsh\continuity-host\` | 三个驱动器全代次 + 离线管线设施 |
-| `C:\Users\wangy\.dsh\profiles\web\cordis.patch.yml` | host 补丁层（三行驱动器，热应用） |
-| `C:\Users\wangy\.dsh\profiles\continuity-smoke\` | 离线管线测试 profile |
-| `C:\Users\wangy\.dsh\designs\continuity-v3\` | 本仓库（README + LICENSE 在根；`docs\` 文档、`docs\design\` 设计文档、`scripts\` 安装/同步脚本、`tests\`、`deploy\` 镜像） |
-| `C:\Users\wangy\.dsh\designs\continuity-v3\opt-scratch\` | 临时工作区与草稿（不入库；含 smoke-a/smoke-b/smoke-repo） |
+| `C:\Users\<USER>\.dsh\.agent-presets\continuity\` | 预设（组合 + 插件全代次 + preset.yml） |
+| `C:\Users\<USER>\.dsh\continuity-host\` | 三个驱动器全代次 + 离线管线设施 |
+| `C:\Users\<USER>\.dsh\profiles\web\cordis.patch.yml` | host 补丁层（三行驱动器，热应用） |
+| `C:\Users\<USER>\.dsh\profiles\continuity-smoke\` | 离线管线测试 profile |
+| `C:\Users\<USER>\.dsh\designs\continuity-v3\` | 本仓库（README + LICENSE 在根；`docs\` 文档、`docs\design\` 设计文档、`scripts\` 安装/同步脚本、`tests\`、`deploy\` 镜像） |
+| `C:\Users\<USER>\.dsh\designs\continuity-v3\opt-scratch\` | 临时工作区与草稿（不入库；含 smoke-a/smoke-b/smoke-repo） |
 
 ## 9. 常见陷阱
 

@@ -72,4 +72,6 @@ powershell -ExecutionPolicy Bypass -File scripts/install.ps1
 
 ## 许可
 
-本项目为 DeepSeek Harness（MIT）的个人能力扩展，运行于用户自有目录（`~/.dsh`），与业务仓库解耦；不修改出厂安装。采用与 DeepSeek Harness 相同的 [MIT License](LICENSE)。对外分发前请替换绝对路径并重新验证安装脚本。
+本项目为 DeepSeek Harness（MIT）的个人能力扩展，运行于用户自有目录（`~/.dsh`），与业务仓库解耦；不修改出厂安装。采用与 DeepSeek Harness 相同的 [MIT License](LICENSE)。
+
+仓库内不含任何个人绝对路径：本机路径一律以 `C:\Users\<USER>\` 占位，安装脚本、测试与文档检查均通过 `$DSH_HOME` / `$DSH_HARNESS` 环境变量（缺省 `~/.dsh` / `~/Documents/GitHub/deepseek-harness`）动态解析真实位置。

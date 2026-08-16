@@ -250,7 +250,7 @@
  * `continuity-shared.v2.mjs` (absolute file URL; still zero node_modules
  * dependencies, same as the host drivers).
  */
-import { COORD_LINK_MARKER } from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-shared.v2.mjs'
+import { COORD_LINK_MARKER } from 'file:///C:/Users/<USER>/.dsh/continuity-host/continuity-shared.v2.mjs'
 
 export const MARKER = '<!-- DSH_CONTINUITY_CHECKPOINT v1 -->'
 
