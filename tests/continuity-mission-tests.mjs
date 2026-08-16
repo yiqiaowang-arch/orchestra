@@ -1,6 +1,6 @@
 /**
  * Unit tests for the host-side continuity-mission driver
- * (C:\Users\wangy\.dsh\continuity-host\continuity-mission.v7.mjs).
+ * (C:\Users\wangy\.dsh\continuity-host\continuity-mission.v8.mjs).
  * Run with: node continuity-mission-tests.mjs
  */
 import { strict as assert } from 'node:assert'
@@ -15,7 +15,7 @@ import {
   findMissionCheckpoint,
   missionGoalFromCheckpoint,
   missionSummary,
-} from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-mission.v7.mjs'
+} from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-mission.v8.mjs'
 import continuityMission from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-mission.v7.mjs'
 import { MISSION_MARKER } from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-shared.v1.mjs'
 

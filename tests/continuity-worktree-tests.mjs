@@ -22,8 +22,8 @@ import {
   classifyGitProbe,
   isWorktreeConflict,
   approvalOutcomeOfAnswer,
-} from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-worktree.v7.mjs'
-import continuityWorktree from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-worktree.v7.mjs'
+} from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-worktree.v8.mjs'
+import continuityWorktree from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-worktree.v8.mjs'
 
 let passed = 0
 let failed = 0

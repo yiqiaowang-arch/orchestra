@@ -1,6 +1,6 @@
 # COMMANDS.md — Orchestra（乐团模式）命令全集
 
-> 当前版本：预设插件 v31 / rotation v7 / worktree v7 / mission v7 / shared v1。
+> 当前版本：预设插件 v32 / rotation v8 / worktree v8 / mission v8 / shared v2。
 > 25 条专属命令 + 6 条继承自标准模式。
 
 ## 一、接力（上下文健康）

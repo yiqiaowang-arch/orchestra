@@ -1,6 +1,6 @@
 /**
  * Unit tests for the host-side continuity-rotation driver
- * (C:\Users\wangy\.dsh\continuity-host\continuity-rotation.v7.mjs).
+ * (C:\Users\wangy\.dsh\continuity-host\continuity-rotation.v8.mjs).
  * Run with: node continuity-rotation-tests.mjs
  */
 import { strict as assert } from 'node:assert'
@@ -11,8 +11,9 @@ import {
   freshRotationCache,
   foldRotationEvent,
   foldRotationIncremental,
-} from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-rotation.v7.mjs'
-import continuityRotation from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-rotation.v7.mjs'
+} from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-rotation.v8.mjs'
+import continuityRotation from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-rotation.v8.mjs'
+import { textOfMessage } from 'file:///C:/Users/wangy/.dsh/continuity-host/continuity-shared.v2.mjs'
 
 let passed = 0
 let failed = 0
@@ -283,6 +284,83 @@ test('rotate: successor is attached to the source workspace (v7)', async () => {
   assert.equal(created.length, 1)
   assert.equal(attached.length, 1)
   assert.equal(attached[0], created[0], 'the successor session is attached to the workspace')
+})
+
+test('rotate: coordination links migrate to the successor and spokes re-point (v8)', async () => {
+  const injectedNext = []
+  const injectedSpokes = []
+  const nextAgent = { session: { append() {} }, inject(msg) { injectedNext.push(msg) }, followup() {} }
+  const spokeA = { id: 'spoke-a', inject(msg) { injectedSpokes.push(msg) } }
+  const spokeB = { id: 'spoke-b', inject(msg) { injectedSpokes.push(msg) } }
+  const agents = {
+    create: async (spec) => { nextAgent.id = spec.sessionId; return { agent: nextAgent } },
+    get(id) {
+      if (id === 'spoke-a') return spokeA
+      if (id === 'spoke-b') return spokeB
+      return undefined
+    },
+  }
+  const linkRecord = '<!-- DSH_COORD_LINKS v1 --> hub=root-1 spokes=spoke-a,spoke-b'
+  const sessionQuery = {
+    readSession: async () => ({
+      events: [
+        headerEvent(1, { provider: 'p', model: 'm' }),
+        userEvent(2),
+        assistantEvent(3, validCheckpoint()),
+        { type: 'user/message', seq: 4, data: { message: { content: [{ type: 'text', text: linkRecord }], source: { kind: 'continuity-links', version: 1 } } } },
+      ],
+    }),
+  }
+  const provided = {}
+  const ctx = {
+    get(name) {
+      if (name === 'agents') return agents
+      if (name === 'sessionQuery') return sessionQuery
+      return undefined
+    },
+    on() {},
+    provide(name, value) { provided[name] = value },
+  }
+  continuityRotation(ctx, {})
+  const agent = { id: 'root-1', session: rootSession(), ctx: {} }
+  const result = await provided[SERVICE].rotate(agent, undefined)
+  assert.equal(result.kind, 'success', result.text)
+  assert.match(result.text, /coordination links migrated/)
+  // the successor received the record with hub= rewritten to its own id
+  assert.equal(injectedNext.length, 1, JSON.stringify(injectedNext))
+  assert.match(textOfMessage(injectedNext[0]), /hub=session-cont-rotate-/)
+  assert.match(textOfMessage(injectedNext[0]), /spokes=spoke-a,spoke-b/)
+  // both spokes received a fresh hub=<successor> record (newest wins on restore)
+  assert.equal(injectedSpokes.length, 2, JSON.stringify(injectedSpokes))
+  for (const msg of injectedSpokes) assert.match(textOfMessage(msg), /hub=session-cont-rotate-/)
+})
+
+test('rotate: no link record in the source log → no migration (v8)', async () => {
+  const injectedNext = []
+  const nextAgent = { session: { append() {} }, inject(msg) { injectedNext.push(msg) }, followup() {} }
+  const agents = {
+    create: async () => ({ agent: nextAgent }),
+    get() { return undefined },
+  }
+  const sessionQuery = {
+    readSession: async () => ({ events: [headerEvent(1, { provider: 'p', model: 'm' }), userEvent(2), assistantEvent(3, validCheckpoint())] }),
+  }
+  const provided = {}
+  const ctx = {
+    get(name) {
+      if (name === 'agents') return agents
+      if (name === 'sessionQuery') return sessionQuery
+      return undefined
+    },
+    on() {},
+    provide(name, value) { provided[name] = value },
+  }
+  continuityRotation(ctx, {})
+  const agent = { id: 'root-1', session: rootSession(), ctx: {} }
+  const result = await provided[SERVICE].rotate(agent, undefined)
+  assert.equal(result.kind, 'success', result.text)
+  assert.doesNotMatch(result.text, /coordination links migrated/)
+  assert.equal(injectedNext.length, 0, 'no link record → nothing injected')
 })
 
 test('rotate: timeout path aborts cleanly and leaves the old session unchanged', async () => {

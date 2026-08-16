@@ -1,5 +1,13 @@
 # CHANGELOG.md — 版本史
 
+## v32/v8 — 轮换链接迁移 + 标记收敛（2026-08-17）
+
+**插件 v32 · rotation v8 · worktree v8 · mission v8 · shared v2**（旧代次全部保留，153/153 测试）
+
+- **rotate 本意落地**：rotation v8 创建继任者时自动迁移协调链接——扫描源 hub 日志最新 `<!-- DSH_COORD_LINKS v1 -->` 记录 → `hub=` 改写为继任者注入其日志；给每个 spoke 注入新 `hub=<继任者>` 记录（恢复时最新记录胜出，spokes 重启后自动指向新 hub，无双重转发、无需手动 /coordinate-hub）；`/worker-successor` 同样继承 worker 链接。
+- **COORD_LINK_MARKER 收敛**：shared.v2 新增导出，插件 v32 与 rotation v8 共用同一绑定（单一真相源闭环）；worktree/mission v8 仅 import URL 前移，逐字节等价。
+- 测试 151 → **153**（+2：链接迁移 / 无记录不迁移）。
+
 ## v31 — 压力感知巡检（2026-08-17）
 
 **插件 v31**（驱动器不变；151/151 测试）

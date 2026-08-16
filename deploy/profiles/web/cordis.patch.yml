@@ -14,7 +14,7 @@
 # (Remove this whole entry to uninstall.)
 - insert:
     - id: continuity-rotation
-      name: file:///C:/Users/wangy/.dsh/continuity-host/continuity-rotation.v7.mjs
+      name: file:///C:/Users/wangy/.dsh/continuity-host/continuity-rotation.v8.mjs
       config:
         rotateRatio: 0.78
         autoRollover: suggest
@@ -30,7 +30,7 @@
     # request must return allowed-once. Set askApproval: false to disable the
     # gate explicitly (danger-full-access style usage).
     - id: continuity-worktree
-      name: file:///C:/Users/wangy/.dsh/continuity-host/continuity-worktree.v7.mjs
+      name: file:///C:/Users/wangy/.dsh/continuity-host/continuity-worktree.v8.mjs
       config:
         askApproval: true
         reportCapChars: 8000
@@ -42,7 +42,7 @@
     # (bounded) → closeout (durable mission checkpoint) | escalate. All
     # phases carry timeouts and round caps; the loop never silently expands.
     - id: continuity-mission
-      name: file:///C:/Users/wangy/.dsh/continuity-host/continuity-mission.v7.mjs
+      name: file:///C:/Users/wangy/.dsh/continuity-host/continuity-mission.v8.mjs
       config:
         maxTasks: 4
         maxConcurrent: 2

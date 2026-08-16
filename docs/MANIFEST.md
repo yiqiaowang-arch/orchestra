@@ -8,13 +8,13 @@
 
 | 组件 | 当前版本 | 真实位置 | 被引用处 |
 |---|---|---|---|
-| 预设插件 | **v31** | `~/.dsh/.agent-presets/continuity/continuity-plugin.v31.mjs` | `agent.cordis.yml`（continuity group 内） |
-| 轮换驱动器 | **v7** | `~/.dsh/continuity-host/continuity-rotation.v7.mjs` | `profiles/web/cordis.patch.yml`、`profiles/continuity-smoke/cordis.patch.yml` |
-| worktree 驱动器 | **v7** | `~/.dsh/continuity-host/continuity-worktree.v7.mjs` | `profiles/web/cordis.patch.yml` |
-| mission 驱动器 | **v7** | `~/.dsh/continuity-host/continuity-mission.v7.mjs` | `profiles/web/cordis.patch.yml` |
-| shared | **v1** | `~/.dsh/continuity-host/continuity-shared.v1.mjs` | 三个驱动器 import（checkpoint/mission marker 单一真相源） |
+| 预设插件 | **v32** | `~/.dsh/.agent-presets/continuity/continuity-plugin.v32.mjs` | `agent.cordis.yml`（continuity group 内） |
+| 轮换驱动器 | **v8** | `~/.dsh/continuity-host/continuity-rotation.v8.mjs` | `profiles/web/cordis.patch.yml`、`profiles/continuity-smoke/cordis.patch.yml` |
+| worktree 驱动器 | **v8** | `~/.dsh/continuity-host/continuity-worktree.v8.mjs` | `profiles/web/cordis.patch.yml` |
+| mission 驱动器 | **v8** | `~/.dsh/continuity-host/continuity-mission.v8.mjs` | `profiles/web/cordis.patch.yml` |
+| shared | **v2** | `~/.dsh/continuity-host/continuity-shared.v2.mjs` | 三个驱动器 + 插件 import（checkpoint/mission/coord-link marker 单一真相源） |
 
-旧代次（插件 v1..v30、rotation base/v2..v6、worktree v1..v6、mission v1..v6）**全部保留**——运行中的进程可能仍引用它们，禁止删除。
+旧代次（插件 v1..v31、rotation base/v2..v7、worktree v1..v7、mission v1..v7、shared v1）**全部保留**——运行中的进程可能仍引用它们，禁止删除。
 
 ## 文档索引
 
@@ -34,9 +34,9 @@
 
 ```powershell
 node tests\continuity-unit-tests.mjs      # 76 项
-node tests\continuity-rotation-tests.mjs  # 20 项
+node tests\continuity-rotation-tests.mjs  # 22 项
 node tests\continuity-worktree-tests.mjs  # 32 项
-node tests\continuity-mission-tests.mjs   # 23 项  （合计 151）
+node tests\continuity-mission-tests.mjs   # 23 项  （合计 153）
 node tests\validate-mermaid.mjs           # 所有 ```mermaid 图必须解析通过
 node C:\Users\wangy\Documents\GitHub\deepseek-harness\apps\cli\lib\bin.js --profile web --dump-config
 node C:\Users\wangy\Documents\GitHub\deepseek-harness\apps\cli\lib\bin.js --profile continuity-smoke
