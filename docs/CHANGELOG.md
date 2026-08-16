@@ -1,5 +1,10 @@
 # CHANGELOG.md — 版本史
 
+## 仓库：deploy 镜像只留当前版本（2026-08-17）
+
+- `sync-deploy.ps1` 重写：从 web patch / 组合行**自动解析当前版本**（正则锚定 `name:` 行，注释里的旧版本号不再干扰），只镜像当前版本；deploy 中非当前文件自动移入 `deploy\archive\`（55 个旧代次归档，回滚时取回即可，install.ps1 永不复制）。
+- live `~/.dsh` 目录照旧保留全部代次（红线 4 不变）。
+
 ## v32/v8 — 轮换链接迁移 + 标记收敛（2026-08-17）
 
 **插件 v32 · rotation v8 · worktree v8 · mission v8 · shared v2**（旧代次全部保留，153/153 测试）

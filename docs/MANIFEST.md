@@ -27,7 +27,7 @@
 - `docs\design\CONTEXT_CONTINUITY_SYSTEM_DESIGN_V3/V4.md` —— 设计文档（V4 含全部实测约束）
 - `docs\design\`（DEEPSEEK_SYSTEM / CREATION_MODE / SYSTEM_LEVEL）—— 系统级历史规范（原样保留）
 - `scripts\install.ps1` —— 安装（deploy 镜像 → 本机 Harness）
-- `scripts\sync-deploy.ps1` —— 提交前同步（真实文件 → deploy 镜像）
+- `scripts\sync-deploy.ps1` —— 提交前同步（真实文件当前版本 → deploy 镜像；旧代次自动移入 deploy\archive\）
 - 本文件 —— 维护者速查（版本/引用/升级/回滚）
 
 ## 测试与验证
@@ -45,14 +45,14 @@ node C:\Users\wangy\Documents\GitHub\deepseek-harness\apps\cli\lib\bin.js --prof
 ## 升级规程（版本化 URL 规则，G7/G8）
 
 1. 任何 `.mjs` 内容修改 = 发布**新版本文件**（+1 版本号）+ 更新全部引用（web/smoke patch、组合行、测试 import、管线 runner）；
-2. 旧版本文件原样保留；
+2. 旧版本文件原样保留（live `~/.dsh` 全部代次；仓库镜像当前版本，历史在 `deploy\archive\`）；
 3. 预设伴生插件换版必须同时触碰 `agent.cordis.yml`（standing 代次以组合文件 stamp 换代）；
 4. 驱动器服务访问全部**调用期惰性 `ctx.get`**；预设行发布 Service 必须置于 `isolate` realm 组；
 5. 运行 `scripts/sync-deploy.ps1` → 全量测试 → dump-config/离线管线 → 提交。
 
 ## 回滚路径（自上而下）
 
-1. 版本回退：patch/组合行改回旧 URL（旧文件都在）；
+1. 版本回退：patch/组合行改回旧 URL（live `~/.dsh` 旧文件都在；仓库镜像如需旧文件，从 `deploy\archive\` 取回 `deploy\` 对应目录）；
 2. 禁行：patch 对应行加 `disabled: true`；
 3. 删补丁行（既有会话日志与 checkpoint 保留）；
 4. 最坏：删预设（`agentPresets.remove('continuity')`）。

@@ -5,7 +5,7 @@
 
 ## 1. 本仓库是什么
 
-DeepSeek Harness 的上下文接力能力栈：预设 `continuity`（Orchestra 乐团模式，曾用名：接力模式）+ 三个 host 驱动器，全部用户自有、位于 `~/.dsh` 下、与业务仓库解耦。`deploy/` 是**真实运行文件**的镜像——运行位置由 harness 固定（见 §8），仓库通过镜像进行版本控制。
+DeepSeek Harness 的上下文接力能力栈：预设 `continuity`（Orchestra 乐团模式，曾用名：接力模式）+ 三个 host 驱动器，全部用户自有、位于 `~/.dsh` 下、与业务仓库解耦。`deploy/` 是**真实运行文件当前版本**的镜像（运行位置由 harness 固定，见 §8）；历史代次归档于 `deploy/archive/`（回滚/追溯用，install.ps1 永不复制它），live `~/.dsh` 目录始终保留全部代次（红线 4）。
 
 ## 2. 红线（违反即失败）
 
